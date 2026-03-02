@@ -8,6 +8,36 @@ Pitch - https://blind-pool.vercel.app/ppt
 
 Contract Scripts Repo - https://github.com/ayushsingh82/BlindPool-scripts
 
+## TODO
+
+**Chainlink Hackathon - Privacy Track ($6,000)**
+
+Participating in the Chainlink hackathon. This project integrates **Chainlink Confidential Compute** (early access) for private transactions and/or **CRE's Confidential HTTP** capability to build privacy-preserving workflows, where API credentials, selected request and response data, and value flows are protected, and sensitive application logic executes offchain.
+
+This track focuses on applications that require secure API connectivity and/or compliant non-public token movement, enabling decentralized workflows without exposing secrets, sensitive inputs or outputs, or internal transaction flows onchain.
+
+*Note: Confidential HTTP and Chainlink Confidential Compute (early access) will be available from Feb 16th.*
+
+### Example use cases and design patterns
+
+- **Sealed-bid auctions & private payments:** Bidders submit payments via compliant private transactions; auction logic runs offchain to determine winners; settlement and refunds occur privately.
+- **Private treasury and fund operations:** Move funds internally without exposing detailed transaction flows, while retaining the ability to withdraw to public token contracts.
+- **Private governance payouts & incentives:** Governance or scoring logic runs offchain; rewards, grants, or incentives are distributed via compliant private transactions; individual recipients and amounts are not publicly visible.
+- **Private rewards & revenue distribution:** Offchain computation determines allocations; payments executed via private transactions; supports rebates, revenue shares, bounties, and incentives.
+- **OTC and brokered settlements:** Settle negotiated trades privately between counterparties, with execution coordinated offchain.
+- **Secure Web2 API integration for decentralized workflows:** Use external APIs in CRE without exposing API keys or sensitive request & response parameters onchain.
+- **Protected request–driven automation:** Trigger offchain or onchain workflows based on API data while keeping credentials and selected request inputs confidential.
+- **Safe access to regulated or high-risk APIs:** Interact with APIs where leaked credentials or request parameters could cause financial, security, or compliance risk.
+- **Credential-secure data ingestion and processing:** Fetch and process external data offchain using CRE while preventing secrets from being exposed to the blockchain or logs.
+- **Controlled offchain data handling with auditability:** Execute API requests offchain with reliable execution guarantees and traceable usage, without writing sensitive inputs onchain.
+
+### Requirements
+
+Build, simulate, or deploy a **CRE Workflow** that's used as an orchestration layer within your project. Your workflow should:
+
+- Integrate at least one blockchain with an external API, system, data source, LLM, or AI agent
+- Demonstrate a successful simulation (via the CRE CLI) or a live deployment on the CRE network
+
 ## What It Is
 
 [Uniswap's Continuous Clearing Auction (CCA)](https://docs.uniswap.org/) is a mechanism for **fair, continuous price discovery** and **liquidity bootstrapping** for a new token — all onchain and permissionless. Bids are automatically integrated over time to determine a market-clearing price and seed liquidity into a Uniswap pool when the auction ends.
