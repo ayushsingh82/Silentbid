@@ -1,5 +1,5 @@
 {
   "chainId": 11155111,
-  "blindPoolAddress": "",
+  "silentBidAddress": "",
   "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com"
 }

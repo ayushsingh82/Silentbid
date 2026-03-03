@@ -2,12 +2,12 @@
 # Auction Finalization Workflow — POST /cre/finalize
 # ==========================================================================
 # Input: auctionId. Loads sealed bids from store; computes clearing price;
-# calls BlindPoolCCA.forwardBidsToCCA(...) (admin). See plan_execution.md.
+# calls SilentBidCCA.forwardBidsToCCA(...) (admin). See plan_execution.md.
 # ==========================================================================
 
 staging-settings:
   user-workflow:
-    workflow-name: "blindpool-finalize-staging"
+    workflow-name: "silentbid-finalize-staging"
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.staging.json"
@@ -15,7 +15,7 @@ staging-settings:
 
 production-settings:
   user-workflow:
-    workflow-name: "blindpool-finalize-production"
+    workflow-name: "silentbid-finalize-production"
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.production.json"

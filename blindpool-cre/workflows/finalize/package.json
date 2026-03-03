@@ -1,5 +1,5 @@
 {
-  "name": "blindpool-finalize",
+  "name": "silentbid-finalize",
   "version": "1.0.0",
   "main": "dist/main.js",
   "private": true,

@@ -103,39 +103,39 @@ export const AUCTION_ABI = [
   },
 ] as const
 
-// ── SilentBid / BlindPool (CRE commitment-based sealed bids) ───────────────────────
+// ── SilentBid (CRE commitment-based sealed bids) ───────────────────────
 
-export const BLIND_POOL_FACTORY_ADDRESS =
-  (process.env.NEXT_PUBLIC_BLIND_POOL_FACTORY_ADDRESS ?? "") as Address
+export const SILENTBID_FACTORY_ADDRESS =
+  (process.env.NEXT_PUBLIC_SILENTBID_FACTORY_ADDRESS ?? process.env.NEXT_PUBLIC_BLIND_POOL_FACTORY_ADDRESS ?? "") as Address
 
-/** On Anvil, there's no BlindPoolFactory — use this env var to inject the SilentBid (blind pool) address directly */
-export const BLIND_POOL_OVERRIDE =
-  (process.env.NEXT_PUBLIC_BLIND_POOL_OVERRIDE ?? "") as Address
+/** On Anvil, use this env var to inject the SilentBid address directly when no factory */
+export const SILENTBID_OVERRIDE =
+  (process.env.NEXT_PUBLIC_SILENTBID_OVERRIDE ?? process.env.NEXT_PUBLIC_BLIND_POOL_OVERRIDE ?? "") as Address
 
-export const BLIND_POOL_FACTORY_ABI = [
+export const SILENTBID_FACTORY_ABI = [
   {
     type: "function",
-    name: "deployBlindPool",
+    name: "deploySilentBid",
     inputs: [{ name: "_cca", type: "address" }],
-    outputs: [{ name: "blindPool", type: "address" }],
+    outputs: [{ name: "silentBid", type: "address" }],
     stateMutability: "nonpayable",
   },
   {
     type: "event",
-    name: "BlindPoolDeployed",
+    name: "SilentBidDeployed",
     inputs: [
       { name: "cca", type: "address", indexed: true },
-      { name: "blindPool", type: "address", indexed: true },
-      { name: "blindBidDeadline", type: "uint64", indexed: false },
+      { name: "silentBid", type: "address", indexed: true },
+      { name: "silentBidDeadline", type: "uint64", indexed: false },
     ],
   },
 ] as const
 
-export const BLIND_POOL_ABI = [
+export const SILENTBID_ABI = [
   // Write
   {
     type: "function",
-    name: "submitBlindBid",
+    name: "submitSilentBid",
     inputs: [{ name: "_bidCommitment", type: "bytes32" }],
     outputs: [],
     stateMutability: "payable",
@@ -143,12 +143,12 @@ export const BLIND_POOL_ABI = [
   // Views
   { type: "function", name: "admin", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
   { type: "function", name: "cca", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
-  { type: "function", name: "blindBidDeadline", inputs: [], outputs: [{ type: "uint64" }], stateMutability: "view" },
-  { type: "function", name: "nextBlindBidId", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  { type: "function", name: "silentBidDeadline", inputs: [], outputs: [{ type: "uint64" }], stateMutability: "view" },
+  { type: "function", name: "nextSilentBidId", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
   {
     type: "function",
-    name: "getBlindBidInfo",
-    inputs: [{ name: "_blindBidId", type: "uint256" }],
+    name: "getSilentBidInfo",
+    inputs: [{ name: "_silentBidId", type: "uint256" }],
     outputs: [
       { name: "bidder", type: "address" },
       { name: "ethDeposit", type: "uint256" },
@@ -160,9 +160,9 @@ export const BLIND_POOL_ABI = [
   // Events
   {
     type: "event",
-    name: "BlindBidPlaced",
+    name: "SilentBidPlaced",
     inputs: [
-      { name: "blindBidId", type: "uint256", indexed: true },
+      { name: "silentBidId", type: "uint256", indexed: true },
       { name: "bidder", type: "address", indexed: true },
       { name: "bidCommitment", type: "bytes32", indexed: false },
     ],

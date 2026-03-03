@@ -6,7 +6,7 @@ Demo video - https://youtu.be/dnrUvJf2Mg4
 
 Pitch - https://blind-pool.vercel.app/ppt
 
-Contract Scripts Repo - https://github.com/ayushsingh82/BlindPool-scripts
+Contract Scripts Repo - https://github.com/ayushsingh82/BlindPool-scripts (SilentBid contracts)
 
 ## TODO
 
@@ -134,7 +134,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the SilentBid app.
 
 Scripts for deploying SilentBid, CCA auctions, and testing on Sepolia (Foundry):
 
-- **[BlindPool-scripts](https://github.com/ayushsingh82/BlindPool-scripts)** — Deploy CCA, deploy SilentBid, submit bids, reveal, forward, check status. See the repo README for setup and usage.
+- **[BlindPool-scripts](https://github.com/ayushsingh82/BlindPool-scripts)** — Deploy CCA, deploy SilentBid (SilentBidCCA/SilentBidFactory), submit bids, check status, CRE finalize. See the repo README for setup and usage.
 
 ## Learn More
 

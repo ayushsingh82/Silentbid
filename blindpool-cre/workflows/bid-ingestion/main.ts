@@ -2,11 +2,11 @@
  * SilentBid Bid Ingestion Workflow (CRE)
  *
  * HTTP trigger: POST body = { sender, auctionId, maxPrice, amount, flags?, timestamp, auth }
- * - Verifies EIP-712 signature (BlindPoolBid type).
+ * - Verifies EIP-712 signature (SilentBidBid type).
  * - Computes bidCommitment = keccak256(encodePacked(auctionId, sender, maxPrice, amount, timestamp)).
  * - Optionally calls compliance API via Confidential HTTP (when config.complianceApiUrl set).
  * - Returns { commitment, sender, auctionId, amount } for frontend to call
- *   BlindPoolCCA.submitBlindBid(commitment) with value: amount, or for relayer to submit.
+ *   SilentBidCCA.submitSilentBid(commitment) with value: amount, or for relayer to submit.
  *
  * Refs: plan_execution.md, Compliant-Private-Transfer-Demo (EIP-712 + POST),
  *       conf-http-demo (ConfidentialHTTPClient, handler, Runner).
@@ -25,8 +25,8 @@ import { z } from "zod"
 
 const configSchema = z.object({
   chainId: z.number(),
-  blindPoolDomainName: z.string(),
-  blindPoolDomainVersion: z.string(),
+  silentBidDomainName: z.string(),
+  silentBidDomainVersion: z.string(),
   verifyingContract: z.string(),
   complianceApiUrl: z.string().optional(),
   complianceApiKeyOwner: z.string().optional(),
@@ -35,7 +35,7 @@ const configSchema = z.object({
 type Config = z.infer<typeof configSchema>
 
 const EIP712_TYPES = {
-  BlindPoolBid: [
+  SilentBidBid: [
     { name: "sender", type: "address" },
     { name: "auctionId", type: "address" },
     { name: "maxPrice", type: "uint256" },
@@ -86,8 +86,8 @@ const onBidRequest = (runtime: Runtime<Config>, payload: HTTPPayload): string =>
   const auth = raw.auth as Hex
 
   const domain = {
-    name: runtime.config.blindPoolDomainName,
-    version: runtime.config.blindPoolDomainVersion,
+    name: runtime.config.silentBidDomainName,
+    version: runtime.config.silentBidDomainVersion,
     chainId: runtime.config.chainId,
     verifyingContract: runtime.config.verifyingContract as Hex,
   }
@@ -108,7 +108,7 @@ const onBidRequest = (runtime: Runtime<Config>, payload: HTTPPayload): string =>
       address: sender,
       domain,
       types: EIP712_TYPES,
-      primaryType: "BlindPoolBid",
+      primaryType: "SilentBidBid",
       message,
       signature: auth,
     })

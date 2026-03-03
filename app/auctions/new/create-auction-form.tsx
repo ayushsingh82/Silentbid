@@ -11,8 +11,8 @@ import {
   FACTORY_ABI as FACTORY_EVENT_ABI,
   AUCTION_ABI,
   ERC20_ABI,
-  BLIND_POOL_FACTORY_ABI,
-  BLIND_POOL_FACTORY_ADDRESS,
+  SILENTBID_FACTORY_ABI,
+  SILENTBID_FACTORY_ADDRESS,
   ethToQ96,
 } from "@/lib/auction-contracts"
 
@@ -162,38 +162,38 @@ export function CreateAuctionForm() {
 
   // Step 4: Deploy SilentBid (privacy wrapper)
   const {
-    data: blindPoolTxHash,
-    writeContract: writeDeployBlindPool,
-    isPending: isDeployingBlindPool,
-    reset: resetBlindPool,
-    error: blindPoolWriteError,
+    data: silentBidTxHash,
+    writeContract: writeDeploySilentBid,
+    isPending: isDeployingSilentBid,
+    reset: resetSilentBid,
+    error: silentBidWriteError,
   } = useWriteContract()
 
-  const { isLoading: isBlindPoolConfirming, isSuccess: isBlindPoolSuccess, data: blindPoolReceipt, error: blindPoolReceiptError } =
-    useWaitForTransactionReceipt({ hash: blindPoolTxHash })
+  const { isLoading: isSilentBidConfirming, isSuccess: isSilentBidSuccess, data: silentBidReceipt, error: silentBidReceiptError } =
+    useWaitForTransactionReceipt({ hash: silentBidTxHash })
 
-  // Extract BlindPool address from deploy receipt
-  const blindPoolAddress = useMemo(() => {
-    if (!blindPoolReceipt) return null
-    for (const log of blindPoolReceipt.logs) {
+  // Extract SilentBid address from deploy receipt
+  const silentBidAddress = useMemo(() => {
+    if (!silentBidReceipt) return null
+    for (const log of silentBidReceipt.logs) {
       try {
         const decoded = decodeEventLog({
-          abi: BLIND_POOL_FACTORY_ABI,
+          abi: SILENTBID_FACTORY_ABI,
           data: log.data,
           topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
         })
-        if (decoded.eventName === "BlindPoolDeployed" && decoded.args.blindPool) {
-          return decoded.args.blindPool as Address
+        if (decoded.eventName === "SilentBidDeployed" && decoded.args.silentBid) {
+          return decoded.args.silentBid as Address
         }
       } catch {
         // not our event
       }
     }
     return null
-  }, [blindPoolReceipt])
+  }, [silentBidReceipt])
 
   // Combine all hook errors into a single displayable error
-  const hookError = createWriteError || createReceiptError || mintWriteError || mintReceiptError || activateWriteError || activateReceiptError || blindPoolWriteError || blindPoolReceiptError
+  const hookError = createWriteError || createReceiptError || mintWriteError || mintReceiptError || activateWriteError || activateReceiptError || silentBidWriteError || silentBidReceiptError
 
   // Derive auction address from receipt (no setState needed)
   const auctionAddress = useMemo(() => extractAuctionAddress(createReceipt), [createReceipt])
@@ -201,11 +201,11 @@ export function CreateAuctionForm() {
   // Derive current step from state
   const step: Step = useMemo(() => {
     if (!auctionAddress) return "form"
-    if (isBlindPoolSuccess) return "done"
+    if (isSilentBidSuccess) return "done"
     if (isActivateSuccess) return "silentbid"
     if (isMintSuccess || fundingSkipped) return "activating"
     return "funding"
-  }, [auctionAddress, isBlindPoolSuccess, isActivateSuccess, isMintSuccess, fundingSkipped])
+  }, [auctionAddress, isSilentBidSuccess, isActivateSuccess, isMintSuccess, fundingSkipped])
 
   const isSubmitting = isCreating || (isCreateConfirming && !hookError)
 
@@ -319,13 +319,13 @@ export function CreateAuctionForm() {
     })
   }
 
-  function handleDeployBlindPool() {
-    if (!auctionAddress || !BLIND_POOL_FACTORY_ADDRESS) return
+  function handleDeploySilentBid() {
+    if (!auctionAddress || !SILENTBID_FACTORY_ADDRESS) return
     setError(null)
-    writeDeployBlindPool({
-      address: BLIND_POOL_FACTORY_ADDRESS,
-      abi: BLIND_POOL_FACTORY_ABI,
-      functionName: "deployBlindPool",
+    writeDeploySilentBid({
+      address: SILENTBID_FACTORY_ADDRESS,
+      abi: SILENTBID_FACTORY_ABI,
+      functionName: "deploySilentBid",
       args: [auctionAddress],
     })
   }
@@ -336,7 +336,7 @@ export function CreateAuctionForm() {
     resetCreate()
     resetMint()
     resetActivate()
-    resetBlindPool()
+    resetSilentBid()
   }
 
   // Step indicators
@@ -695,22 +695,22 @@ export function CreateAuctionForm() {
               Auction: <code className="text-accent/80">{auctionAddress}</code>
             </p>
             <p className="font-mono text-[10px] text-muted-foreground/60">
-              This calls <code>BlindPoolFactory.deployBlindPool(auction)</code>. Bids are sealed (commitment onchain); CRE finalizes and forwards after the blind bid deadline.
+              This calls <code>SilentBidFactory.deploySilentBid(auction)</code>. Bids are sealed (commitment onchain); CRE finalizes and forwards after the blind bid deadline.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={handleDeployBlindPool}
-            disabled={isDeployingBlindPool || isBlindPoolConfirming}
+            onClick={handleDeploySilentBid}
+            disabled={isDeployingSilentBid || isSilentBidConfirming}
             className={cn(
               "border border-purple-500/40 px-6 py-3 font-mono text-xs uppercase tracking-widest text-purple-400",
               "hover:bg-purple-500/10 transition-colors disabled:opacity-50 disabled:pointer-events-none",
             )}
           >
-            {isDeployingBlindPool
+            {isDeployingSilentBid
               ? "Confirm in wallet..."
-              : isBlindPoolConfirming
+              : isSilentBidConfirming
                 ? "Deploying SilentBid..."
                 : "Deploy SilentBid"}
           </button>
@@ -725,9 +725,9 @@ export function CreateAuctionForm() {
             <p className="text-[10px] text-muted-foreground break-all">
               Auction: <code className="text-accent/80">{auctionAddress}</code>
             </p>
-            {blindPoolAddress && (
+            {silentBidAddress && (
               <p className="text-[10px] text-purple-400 break-all">
-                SilentBid: <code>{blindPoolAddress}</code>
+                SilentBid: <code>{silentBidAddress}</code>
               </p>
             )}
           </div>

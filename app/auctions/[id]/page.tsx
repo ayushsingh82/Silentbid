@@ -14,15 +14,13 @@ import {
   FACTORY_DEPLOY_BLOCK,
   FACTORY_ABI,
   AUCTION_ABI,
-  BLIND_POOL_ABI,
-  BLIND_POOL_FACTORY_ABI,
-  BLIND_POOL_FACTORY_ADDRESS,
-  BLIND_POOL_OVERRIDE,
+  SILENTBID_ABI,
+  SILENTBID_FACTORY_ABI,
+  SILENTBID_FACTORY_ADDRESS,
+  SILENTBID_OVERRIDE,
   q96ToEth,
   type AuctionStatus,
 } from "@/lib/auction-contracts"
-
-// Note: BLIND_POOL_FACTORY_ABI kept for event log parsing in findExistingBlindPool
 
 function statusLabel(s: AuctionStatus) {
   switch (s) {
@@ -73,44 +71,43 @@ export default function AuctionDetailPage() {
   const fetchedRef = useRef(false)
   const handleBidSuccess = useCallback(() => setBidsRefreshKey((k) => k + 1), [])
 
-  // ── BlindPool state ──
-  const [blindPoolAddress, setBlindPoolAddress] = useState<Address | null>(
-    BLIND_POOL_OVERRIDE || null
+  // ── SilentBid state ──
+  const [silentBidAddress, setSilentBidAddress] = useState<Address | null>(
+    SILENTBID_OVERRIDE || null
   )
-  const [blindPoolLoading, setBlindPoolLoading] = useState(false)
-  const [blindPoolDeadline, setBlindPoolDeadline] = useState<bigint | null>(null)
-  const [blindPoolBidCount, setBlindPoolBidCount] = useState<number | null>(null)
+  const [silentBidLoading, setSilentBidLoading] = useState(false)
+  const [silentBidDeadline, setSilentBidDeadline] = useState<bigint | null>(null)
+  const [silentBidBidCount, setSilentBidBidCount] = useState<number | null>(null)
 
 
-  // Look for existing BlindPool from factory events (skip if override is set)
+  // Look for existing SilentBid from factory events (skip if override is set)
   useEffect(() => {
-    if (!publicClient || !BLIND_POOL_FACTORY_ADDRESS || blindPoolAddress) return
+    if (!publicClient || !SILENTBID_FACTORY_ADDRESS || silentBidAddress) return
 
-    async function findExistingBlindPool() {
+    async function findExistingSilentBid() {
       if (!publicClient) return
-      setBlindPoolLoading(true)
+      setSilentBidLoading(true)
       try {
         const latestBlock = await publicClient.getBlockNumber()
-        // Search backwards from latest in 9000-block chunks (RPC limit is 10k)
         const CHUNK = BigInt(9000)
         let to = latestBlock
         const minBlock = FACTORY_DEPLOY_BLOCK
         while (to >= minBlock) {
           const from = to - CHUNK + BigInt(1) < minBlock ? minBlock : to - CHUNK + BigInt(1)
           const logs = await publicClient.getLogs({
-            address: BLIND_POOL_FACTORY_ADDRESS,
-            event: BLIND_POOL_FACTORY_ABI[1], // BlindPoolDeployed event
+            address: SILENTBID_FACTORY_ADDRESS,
+            event: SILENTBID_FACTORY_ABI[1], // SilentBidDeployed event
             args: { cca: auctionAddress },
             fromBlock: from,
             toBlock: to,
           })
           if (logs.length > 0) {
             const latest = logs[logs.length - 1]
-            const addr = latest.args.blindPool as Address
+            const addr = latest.args.silentBid as Address
             console.log("[SilentBid] Found:", addr, "for CCA:", auctionAddress)
-            setBlindPoolAddress(addr)
-            if (latest.args.blindBidDeadline) {
-              setBlindPoolDeadline(BigInt(latest.args.blindBidDeadline))
+            setSilentBidAddress(addr)
+            if (latest.args.silentBidDeadline) {
+              setSilentBidDeadline(BigInt(latest.args.silentBidDeadline))
             }
             return
           }
@@ -120,33 +117,33 @@ export default function AuctionDetailPage() {
       } catch (err) {
         console.error("[SilentBid] Search error:", err)
       } finally {
-        setBlindPoolLoading(false)
+        setSilentBidLoading(false)
       }
     }
-    findExistingBlindPool()
-  }, [publicClient, auctionAddress, blindPoolAddress])
+    findExistingSilentBid()
+  }, [publicClient, auctionAddress, silentBidAddress])
 
-  // Fetch BlindPool metadata when we have an address (re-runs on bidsRefreshKey to update count)
+  // Fetch SilentBid metadata when we have an address (re-runs on bidsRefreshKey to update count)
   useEffect(() => {
-    if (!publicClient || !blindPoolAddress) return
+    if (!publicClient || !silentBidAddress) return
 
-    async function fetchBlindPoolData() {
-      if (!publicClient || !blindPoolAddress) return
+    async function fetchSilentBidData() {
+      if (!publicClient || !silentBidAddress) return
       try {
         const results = await publicClient.multicall({
           contracts: [
-            { address: blindPoolAddress, abi: BLIND_POOL_ABI, functionName: "blindBidDeadline" },
-            { address: blindPoolAddress, abi: BLIND_POOL_ABI, functionName: "nextBlindBidId" },
+            { address: silentBidAddress, abi: SILENTBID_ABI, functionName: "silentBidDeadline" },
+            { address: silentBidAddress, abi: SILENTBID_ABI, functionName: "nextSilentBidId" },
           ],
         })
-        if (results[0].result !== undefined) setBlindPoolDeadline(BigInt(results[0].result as bigint))
-        if (results[1].result !== undefined) setBlindPoolBidCount(Number(results[1].result))
+        if (results[0].result !== undefined) setSilentBidDeadline(BigInt(results[0].result as bigint))
+        if (results[1].result !== undefined) setSilentBidBidCount(Number(results[1].result))
       } catch {
-        // BlindPool may not be fully deployed yet
+        // SilentBid may not be fully deployed yet
       }
     }
-    fetchBlindPoolData()
-  }, [publicClient, blindPoolAddress, bidsRefreshKey])
+    fetchSilentBidData()
+  }, [publicClient, silentBidAddress, bidsRefreshKey])
 
   const fetchAuction = useCallback(async () => {
     if (!publicClient) return
@@ -233,8 +230,8 @@ export default function AuctionDetailPage() {
   }, [auction, currentBlock])
 
   // Can bid if auction is active AND (no silent-bid wrapper, or silent-bid deadline not passed)
-  const blindBidOpen = blindPoolAddress && blindPoolDeadline && currentBlock
-    ? currentBlock < blindPoolDeadline
+  const silentBidOpen = silentBidAddress && silentBidDeadline && currentBlock
+    ? currentBlock < silentBidDeadline
     : true
   const canBid = status === "active"
 
@@ -277,22 +274,22 @@ export default function AuctionDetailPage() {
           )}>
             {statusLabel(status)}
           </span>
-          {blindPoolAddress && (
+          {silentBidAddress && (
             <span className="font-mono text-[10px] uppercase tracking-widest px-2 py-1 border border-purple-500/60 text-purple-400">
               Encrypted
             </span>
           )}
         </div>
         <p className="mt-2 font-mono text-xs text-muted-foreground break-all">
-          {blindPoolAddress ?? auction.address}
+          {silentBidAddress ?? auction.address}
         </p>
         <p className="mt-1 font-mono text-[10px] text-muted-foreground/60">
           Token {auction.token.slice(0, 6)}...{auction.token.slice(-4)} · {networkName}
-          {blindPoolAddress && <> · Powered by <span className="text-purple-400">Chainlink CRE</span></>}
+          {silentBidAddress && <> · Powered by <span className="text-purple-400">Chainlink CRE</span></>}
         </p>
 
         <dl className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 font-mono text-sm">
-          {blindPoolAddress ? (
+          {silentBidAddress ? (
             <>
               <div>
                 <dt className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Floor price</dt>
@@ -304,7 +301,7 @@ export default function AuctionDetailPage() {
               </div>
               <div>
                 <dt className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Sealed bids</dt>
-                <dd className="mt-1 text-foreground">{blindPoolBidCount ?? 0}</dd>
+                <dd className="mt-1 text-foreground">{silentBidBidCount ?? 0}</dd>
               </div>
               <div>
                 <dt className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Total supply</dt>
@@ -313,9 +310,9 @@ export default function AuctionDetailPage() {
               <div>
                 <dt className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Bid deadline</dt>
                 <dd className="mt-1 text-foreground">
-                  {blindPoolDeadline && currentBlock
-                    ? currentBlock < blindPoolDeadline
-                      ? `~${blocksToTime(blindPoolDeadline - currentBlock)}`
+                  {silentBidDeadline && currentBlock
+                    ? currentBlock < silentBidDeadline
+                      ? `~${blocksToTime(silentBidDeadline - currentBlock)}`
                       : "Closed"
                     : "\u2014"}
                 </dd>
@@ -333,7 +330,7 @@ export default function AuctionDetailPage() {
               <div>
                 <dt className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Phase</dt>
                 <dd className="mt-1 text-foreground text-[10px]">
-                  {blindPoolDeadline && currentBlock && currentBlock >= blindPoolDeadline
+                  {silentBidDeadline && currentBlock && currentBlock >= silentBidDeadline
                     ? "Bidding closed — CRE will finalize"
                     : "Accepting sealed bids"}
                 </dd>
@@ -376,7 +373,7 @@ export default function AuctionDetailPage() {
         </dl>
 
         {/* ── Encryption info ── */}
-        {blindPoolAddress && (
+        {silentBidAddress && (
           <div className="mt-8 border border-purple-500/30 bg-purple-500/5 p-4 font-mono text-[10px] text-muted-foreground space-y-1">
             <p className="text-purple-400 uppercase tracking-widest">Chainlink CRE sealed-bid auction</p>
             <p>Only a commitment is stored onchain; price and amount stay private. CRE workflow finalizes and forwards bids to the CCA after the blind bid deadline.</p>
@@ -389,10 +386,10 @@ export default function AuctionDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-[1fr,minmax(280px,380px)] gap-8 md:gap-12 items-start">
               <div className="min-w-0">
                 <h2 className="font-[var(--font-bebas)] text-2xl md:text-3xl tracking-tight">
-                  {blindPoolAddress ? "Place sealed bid" : "Place bid"}
+                  {silentBidAddress ? "Place sealed bid" : "Place bid"}
                 </h2>
                 <p className="mt-2 font-mono text-xs text-muted-foreground">
-                  {blindPoolAddress
+                  {silentBidAddress
                     ? "Only a commitment is onchain; CRE keeps price and amount private until finalization."
                     : "Your bid is confidential until the auction closes."}
                 </p>
@@ -405,7 +402,7 @@ export default function AuctionDetailPage() {
                   clearingPriceRaw={auction.clearingPriceRaw}
                   totalSupply={auction.totalSupply}
                   tickSpacing={auction.tickSpacing}
-                  blindPoolAddress={blindPoolAddress ?? undefined}
+                  silentBidAddress={silentBidAddress ?? undefined}
                   onBidSuccess={handleBidSuccess}
                 />
               </div>
@@ -416,7 +413,7 @@ export default function AuctionDetailPage() {
                   auctionAddress={auction.address}
                   startBlock={auction.startBlock}
                   currentBlock={currentBlock ?? undefined}
-                  blindPoolAddress={blindPoolAddress ?? undefined}
+                  silentBidAddress={silentBidAddress ?? undefined}
                 />
               </div>
             </div>

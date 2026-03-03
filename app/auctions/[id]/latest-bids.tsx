@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { usePublicClient } from "wagmi"
 import { formatEther, type Address } from "viem"
-import { BID_SUBMITTED_EVENT, BLIND_POOL_ABI, q96ToEth } from "@/lib/auction-contracts"
+import { BID_SUBMITTED_EVENT, SILENTBID_ABI, q96ToEth } from "@/lib/auction-contracts"
 import { chainId, blockExplorerUrl } from "@/lib/chain-config"
 
 export interface BidRow {
@@ -27,12 +27,12 @@ function shortAddress(addr: Address): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`
 }
 
-// BlindBidPlaced event from SilentBid (BlindPoolCCA)
-const BLIND_BID_PLACED_EVENT = {
+// SilentBidPlaced event from SilentBidCCA
+const SILENT_BID_PLACED_EVENT = {
   type: "event",
-  name: "BlindBidPlaced",
+  name: "SilentBidPlaced",
   inputs: [
-    { name: "blindBidId", type: "uint256", indexed: true },
+    { name: "silentBidId", type: "uint256", indexed: true },
     { name: "bidder", type: "address", indexed: true },
   ],
 } as const
@@ -41,12 +41,12 @@ export function LatestBids({
   auctionAddress,
   startBlock,
   currentBlock,
-  blindPoolAddress,
+  silentBidAddress,
 }: {
   auctionAddress: Address
   startBlock: bigint
   currentBlock: bigint | undefined
-  blindPoolAddress?: Address
+  silentBidAddress?: Address
 }) {
   const publicClient = usePublicClient({ chainId })
   const [bids, setBids] = useState<BidRow[]>([])
@@ -88,20 +88,20 @@ export function LatestBids({
           from = to + BigInt(1)
         }
 
-        // Fetch SilentBid BlindBidPlaced events (sealed bids)
-        if (blindPoolAddress) {
+        // Fetch SilentBid SilentBidPlaced events (sealed bids)
+        if (silentBidAddress) {
           from = startBlock
           while (from <= latestBlock) {
             const to = from + CHUNK - BigInt(1) > latestBlock ? latestBlock : from + CHUNK - BigInt(1)
-            const blindLogs = await publicClient!.getLogs({
-              address: blindPoolAddress,
-              event: BLIND_BID_PLACED_EVENT,
+            const silentLogs = await publicClient!.getLogs({
+              address: silentBidAddress,
+              event: SILENT_BID_PLACED_EVENT,
               fromBlock: from,
               toBlock: to,
             })
-            for (const log of blindLogs) {
+            for (const log of silentLogs) {
               allRows.push({
-                id: (log.args as { blindBidId: bigint }).blindBidId,
+                id: (log.args as { silentBidId: bigint }).silentBidId,
                 owner: (log.args as { bidder: Address }).bidder,
                 price: BigInt(0), // encrypted — not visible
                 amount: BigInt(0), // encrypted — not visible
@@ -125,7 +125,7 @@ export function LatestBids({
 
     fetchBids()
     return () => { cancelled = true }
-  }, [publicClient, auctionAddress, startBlock, blindPoolAddress])
+  }, [publicClient, auctionAddress, startBlock, silentBidAddress])
 
   if (loading) {
     return (

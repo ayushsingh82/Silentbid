@@ -3,12 +3,12 @@
 # ==========================================================================
 # Accepts EIP-712 signed SilentBid bid; verifies signature; computes commitment;
 # optionally calls compliance API via Confidential HTTP; returns commitment for
-# frontend to call BlindPoolCCA.submitBlindBid(commitment) or workflow submits.
+# frontend to call SilentBidCCA.submitSilentBid(commitment) or workflow submits.
 # ==========================================================================
 
 staging-settings:
   user-workflow:
-    workflow-name: "blindpool-bid-ingestion-staging"
+    workflow-name: "silentbid-bid-ingestion-staging"
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.staging.json"
@@ -16,7 +16,7 @@ staging-settings:
 
 production-settings:
   user-workflow:
-    workflow-name: "blindpool-bid-ingestion-production"
+    workflow-name: "silentbid-bid-ingestion-production"
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.production.json"

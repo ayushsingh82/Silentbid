@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
 import { parseEther, type Address } from "viem"
-import { AUCTION_ABI, BLIND_POOL_ABI, ethToQ96, snapToTickBoundary } from "@/lib/auction-contracts"
+import { AUCTION_ABI, SILENTBID_ABI, ethToQ96, snapToTickBoundary } from "@/lib/auction-contracts"
 import { computeBidCommitment } from "@/lib/cre-bid"
 import { chainId } from "@/lib/chain-config"
 
@@ -23,7 +23,7 @@ export function PlaceBidForm({
   clearingPriceRaw,
   totalSupply,
   tickSpacing,
-  blindPoolAddress,
+  silentBidAddress,
   onBidSuccess,
 }: {
   auctionId: string
@@ -34,7 +34,7 @@ export function PlaceBidForm({
   clearingPriceRaw: bigint
   totalSupply?: string
   tickSpacing: bigint
-  blindPoolAddress?: Address
+  silentBidAddress?: Address
   onBidSuccess?: () => void
 }) {
   const { address, isConnected } = useAccount()
@@ -53,7 +53,7 @@ export function PlaceBidForm({
   const hookError = writeError || receiptError
   const submitted = simulating || isWriting || (isConfirming && !hookError)
 
-  const isEncrypted = !!blindPoolAddress
+  const isEncrypted = !!silentBidAddress
 
   useEffect(() => {
     if (isSuccess && onBidSuccess) onBidSuccess()
@@ -92,7 +92,7 @@ export function PlaceBidForm({
     const amountWei = parseEther(amount)
 
     // ── CRE sealed-bid path: SilentBid (commitment only onchain) ──
-    if (isEncrypted && blindPoolAddress) {
+    if (isEncrypted && silentBidAddress) {
       const rawQ96 = ethToQ96(maxPrice)
       if (rawQ96 === BigInt(0)) {
         setError("Max price is too small to encode.")
@@ -106,9 +106,9 @@ export function PlaceBidForm({
         amountWei
       )
       writeContract({
-        address: blindPoolAddress,
-        abi: BLIND_POOL_ABI,
-        functionName: "submitBlindBid",
+        address: silentBidAddress,
+        abi: SILENTBID_ABI,
+        functionName: "submitSilentBid",
         args: [commitment],
         value: amountWei,
       })
@@ -322,7 +322,7 @@ export function PlaceBidForm({
               }
             </p>
             <p>
-              SilentBid: <code className="text-accent/80 break-all">{blindPoolAddress}</code>
+              SilentBid: <code className="text-accent/80 break-all">{silentBidAddress}</code>
             </p>
           </>
         ) : (

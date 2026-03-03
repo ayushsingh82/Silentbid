@@ -31,7 +31,7 @@ cre login   # required for deploy; simulate can run without login with --non-int
    - Return `{ commitment, sender, auctionId, amount }` so the frontend or relayer can call SilentBid `BlindPoolCCA.submitBlindBid(commitment)` with `value: amount`.
 
 3. **Simulate (from repo root)**  
-   From **blindpool-cre** (project root):
+   From **silentbid-cre** (or blindpool-cre) project root:
 
    ```bash
    cd blindpool-cre
@@ -57,8 +57,8 @@ cre workflow simulate ./workflows/finalize --target=staging-settings \
 
 ## Config
 
-- **workflows/bid-ingestion/config.*.json** — `chainId`, EIP-712 domain (`blindPoolDomainName`, `verifyingContract`), optional `complianceApiUrl` / `complianceApiKeyOwner` for Confidential HTTP.
-- **workflows/finalize/config.*.json** — `blindPoolAddress`, `rpcUrl`.
+- **workflows/bid-ingestion/config.*.json** — `chainId`, EIP-712 domain (`silentBidDomainName`, `verifyingContract`), optional `complianceApiUrl` / `complianceApiKeyOwner` for Confidential HTTP.
+- **workflows/finalize/config.*.json** — `silentBidAddress`, `rpcUrl`.
 
 ## References
 

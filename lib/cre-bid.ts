@@ -1,7 +1,7 @@
 import { keccak256, encodePacked } from "viem"
 
 /**
- * Compute the onchain bid commitment for SilentBid (BlindPoolCCA.submitBlindBid(bytes32)).
+ * Compute the onchain bid commitment for SilentBid (SilentBidCCA.submitSilentBid(bytes32)).
  * Must match the format expected by CRE workflows (see md/CRE_INTEGRATION.md).
  */
 export function computeBidCommitment(
