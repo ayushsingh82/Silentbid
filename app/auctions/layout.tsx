@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
 import { ConnectButtonWrapper } from "@/components/connect-button"
-import { BlindPoolLogo } from "@/components/blindpool-logo"
+import { SilentBidLogo } from "@/components/silentbid-logo"
 
 export const metadata: Metadata = {
-  title: "Auctions — BlindPool",
+  title: "Auctions — SilentBid",
   description: "Sealed-bid Continuous Clearing Auctions. Privacy-first token launches.",
 }
 
@@ -17,7 +17,7 @@ export default function AuctionsLayout({
       <div className="grid-bg fixed inset-0 opacity-30" aria-hidden="true" />
       <header className="relative z-20 border-b border-border/30 bg-background/80 backdrop-blur-sm">
         <div className="flex items-center justify-between px-6 md:px-12 py-4 gap-4 flex-wrap">
-          <BlindPoolLogo />
+          <SilentBidLogo />
           <ConnectButtonWrapper />
         </div>
       </header>

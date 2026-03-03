@@ -3,7 +3,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Empty turbopack config to silence the webpack-only warning in Next 16
   turbopack: {},
-  // COEP needed for Zama fhEVM WASM; COOP must NOT be same-origin (breaks wallet popups)
   async headers() {
     return [
       {
@@ -15,7 +14,7 @@ const nextConfig: NextConfig = {
     ];
   },
   webpack: (config) => {
-    // Required for @zama-fhe/relayer-sdk WASM module (webpack fallback)
+    // Optional: async WASM for future CRE / crypto helpers
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,

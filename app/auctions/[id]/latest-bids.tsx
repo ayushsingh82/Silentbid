@@ -27,7 +27,7 @@ function shortAddress(addr: Address): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`
 }
 
-// BlindBidPlaced event from BlindPoolCCA
+// BlindBidPlaced event from SilentBid (BlindPoolCCA)
 const BLIND_BID_PLACED_EVENT = {
   type: "event",
   name: "BlindBidPlaced",
@@ -88,7 +88,7 @@ export function LatestBids({
           from = to + BigInt(1)
         }
 
-        // Fetch BlindPool BlindBidPlaced events (encrypted bids)
+        // Fetch SilentBid BlindBidPlaced events (sealed bids)
         if (blindPoolAddress) {
           from = startBlock
           while (from <= latestBlock) {

@@ -1,19 +1,19 @@
-## BlindPool Privacy Migration Plan (Chainlink CRE Confidential HTTP)
+## SilentBid Privacy Migration Plan (Chainlink CRE Confidential HTTP)
 
-This document outlines how we will move BlindPool away from the previous Zama fhEVM approach and instead use **Chainlink Confidential Compute + CRE Confidential HTTP** and the **Compliant Private Transfer** / Confidential HTTP demos to power private, compliant auctions.
+This document outlines how we will move SilentBid away from the previous Zama fhEVM approach and instead use **Chainlink Confidential Compute + CRE Confidential HTTP** and the **Compliant Private Transfer** / Confidential HTTP demos to power private, compliant auctions.
 
 ### High‑level goal
 
 Keep the **CCA + sealed‑bid auction UX** exactly the same for users, but:
 
 - All sensitive parts (who bid what, internal transfers, compliance checks) run **offchain in a CRE workflow**.
-- Onchain BlindPool / CCA contracts only see the minimum public data needed to enforce settlement and final clearing price.
+- Onchain SilentBid / CCA contracts only see the minimum public data needed to enforce settlement and final clearing price.
 
 ### Components we will reuse
 
-- **BlindPool / BlindPool‑scripts**
+- **SilentBid / BlindPool‑scripts**
   - Existing CCA deployment + auction scripts (Foundry).
-  - BlindPool wrapper contracts that sit on top of Uniswap CCA.
+  - SilentBid wrapper contracts that sit on top of Uniswap CCA.
 - **Compliant‑Private‑Transfer‑Demo**
   - `api-scripts/src/private-transfer.ts` and related helpers (`common.ts`, `transactions.ts`, etc.) show how to:
     - Sign EIP‑712 payloads for a private transfer.
@@ -28,7 +28,7 @@ Keep the **CCA + sealed‑bid auction UX** exactly the same for users, but:
 ### Target architecture (auction + CRE)
 
 1. **Bid submission (user → front‑end → CRE)**
-   - User connects wallet in the BlindPool app.
+   - User connects wallet in the SilentBid app.
    - Instead of sending a raw bid transaction with full parameters onchain:
      - The front‑end creates an EIP‑712 message representing the bid (similar to `private-transfer.ts`):
        - fields: `sender`, `auctionId`, `maxPrice`, `amount`, `timestamp`, `flags` (e.g., KYC tier, jurisdiction tags).
@@ -43,7 +43,7 @@ Keep the **CCA + sealed‑bid auction UX** exactly the same for users, but:
 2. **During the auction**
    - Onchain state:
      - CCA auction contract tracks total committed liquidity and schedule as usual.
-     - BlindPool wrapper may only see:
+     - SilentBid wrapper may only see:
        - A running commitment amount.
        - A count of sealed bids (not per‑bid details).
    - Offchain / CRE state:
@@ -59,7 +59,7 @@ We have two design options (to be decided after prototyping):
     - Reads all sealed bids from its private store.
     - Computes the clearing price and allocations completely offchain.
     - Sends a single onchain transaction to:
-      - Update the CCA / BlindPool contracts with:
+      - Update the CCA / SilentBid contracts with:
         - final clearing price,
         - total amount raised,
         - aggregate allocation commitments.
@@ -69,7 +69,7 @@ We have two design options (to be decided after prototyping):
   - CRE workflow:
     - Computes a proposed clearing price and a list of winning bids.
     - Sends a transaction that:
-      - Provides the list of winners + allocations to the BlindPool contract.
+      - Provides the list of winners + allocations to the SilentBid contract.
       - Contract re‑validates a subset or minimal invariants onchain (e.g., totals, monotonicity, bounds) to prevent obvious cheating.
 
 In both options, **no raw per‑bid data is ever public before close**, and even after close we can keep individual bids private while still publishing a verifiable clearing price.
@@ -89,13 +89,13 @@ Implementation sketch:
 - CRE workflow:
   - Coordinates:
     - Transfers from a policy‑controlled vault contract (e.g., using a Policy Engine pattern).
-    - Onchain interactions with the CCA / BlindPool contracts.
+    - Onchain interactions with the CCA / SilentBid contracts.
   - Ensures all movements are:
     - Logged privately,
     - Compliant with configured rules (jurisdictions, limits, sanctions checks, etc.),
     - Executed via Confidential HTTP, with API credentials hidden from chain and logs.
 
-### Changes we will make in BlindPool repos
+### Changes we will make in SilentBid repos
 
 #### 1. Documentation cleanup (this step)
 
@@ -108,7 +108,7 @@ Implementation sketch:
 
 #### 2. Contract surface review (next step)
 
-- Audit the existing BlindPool / CCA‑wrapper contracts to identify:
+- Audit the existing SilentBid / CCA‑wrapper contracts to identify:
   - Where bids are currently assumed to be onchain public structs.
   - Which pieces must remain onchain for fairness and verification.
 - Introduce minimal hooks for CRE:
@@ -127,7 +127,7 @@ Implementation sketch:
   - **Auction Finalization Workflow**
     - Input: auction ID, close signal (time or manual).
     - External calls: DB / bid store, optional analytics.
-    - Output: onchain transaction to BlindPool / CCA with clearing price and totals.
+    - Output: onchain transaction to SilentBid / CCA with clearing price and totals.
   - **Settlement / Payout Workflow**
     - Input: settlement event, list of allocations.
     - External calls: vault / treasury contracts, compliance checks, payout APIs.
@@ -160,7 +160,7 @@ Implementation sketch:
 ### Summary
 
 - We are **deprecating fhEVM‑based encryption and Zama‑specific tooling** in favor of **Chainlink Confidential Compute + CRE Confidential HTTP**.
-- All sensitive auction logic (sealed bids, compliance, treasury flows) will be orchestrated in **CRE workflows**, while **Uniswap CCA + BlindPool** remain the onchain settlement and price discovery backbone.
+- All sensitive auction logic (sealed bids, compliance, treasury flows) will be orchestrated in **CRE workflows**, while **Uniswap CCA + SilentBid** remain the onchain settlement and price discovery backbone.
 - The **Compliant‑Private‑Transfer‑Demo** and the **Confidential HTTP demo** provide concrete building blocks for:
   - EIP‑712 signed messages,
   - Private API calls,

@@ -1,5 +1,5 @@
 /**
- * Mock CCA (Continuous Clearing Auction) data for BlindPool demo.
+ * Mock CCA (Continuous Clearing Auction) data for SilentBid demo.
  * Mirrors concepts from Uniswap CCA: token, status, clearing price, sealed bids, end time.
  */
 
@@ -33,7 +33,7 @@ export const mockAuctions: Auction[] = [
   {
     id: "bp-eth-001",
     tokenSymbol: "BLIND",
-    tokenName: "BlindPool Genesis",
+    tokenName: "SilentBid Genesis",
     status: "active",
     startTime: now - 2 * day,
     endTime: now + 5 * day,

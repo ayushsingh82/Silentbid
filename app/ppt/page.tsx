@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils"
 
 const SLIDES = [
   {
-    title: "What is BlindPool?",
+    title: "What is SilentBid?",
     content: (
       <ul className="list-disc list-inside space-y-3 text-left max-w-2xl mx-auto">
-        <li><strong>BlindPool</strong> = Uniswap's <strong>Continuous Clearing Auction (CCA)</strong> + <strong>sealed-bid / private bidding</strong>.</li>
+        <li><strong>SilentBid</strong> = Uniswap's <strong>Continuous Clearing Auction (CCA)</strong> + <strong>sealed-bid / private bidding</strong>.</li>
         <li><strong>CCA</strong> gives fair, continuous price discovery and liquidity bootstrapping for a new token; bids are time-weighted and clear to a single price.</li>
-        <li><strong>BlindPool</strong> keeps <strong>bid prices and amounts private</strong> until the auction closes — no front-running or MEV sniping. (Bidder addresses remain visible on-chain.)</li>
+        <li><strong>SilentBid</strong> keeps <strong>bid prices and amounts private</strong> until the auction closes — no front-running or MEV sniping. (Bidder addresses remain visible on-chain.)</li>
         <li><strong>Why it matters:</strong> Fairer launches, no strategic bid leakage, better UX for participants.</li>
       </ul>
     ),
@@ -31,19 +31,18 @@ const SLIDES = [
           />
         </div>
         <p className="text-sm text-center">
-          <strong className="text-accent">BlindPool</strong> wraps CCA with <strong>sealed bids</strong> (Zama fhEVM): encrypt price + amount on-chain → no one can read them until the auction closes.
+          <strong className="text-accent">SilentBid</strong> wraps CCA with <strong>sealed bids</strong> (Chainlink CRE): only a commitment is onchain; price and amount stay private until the CRE workflow finalizes the auction.
         </p>
       </div>
     ),
   },
   {
-    title: "How We Add Privacy (Zama fhEVM)",
+    title: "How We Add Privacy (Chainlink CRE)",
     content: (
       <ul className="list-disc list-inside space-y-3 text-left max-w-2xl mx-auto">
-        <li><strong>Zama fhEVM</strong> (fully homomorphic encryption) runs on Sepolia; we use it to <strong>encrypt bid data</strong> before it hits the chain.</li>
-        <li><strong>Flow:</strong> User enters max price + amount → <strong>browser encrypts</strong> via Zama relayer → contract receives <strong>encrypted handles</strong>; only after the blind-bid deadline can bids be revealed and forwarded to the CCA.</li>
-        <li>For <strong>true amount privacy</strong>, we use <strong>USDC</strong> (or any ERC20), not native ETH — <code className="bg-muted px-1">msg.value</code> is always public.</li>
-        <li><em>"Private CCA uses USDC so bid amounts can be encrypted with Zama; native ETH cannot be encrypted."</em></li>
+        <li><strong>Chainlink CRE</strong> (Confidential HTTP + Confidential Compute) keeps bid details offchain; only a <strong>commitment</strong> is stored onchain.</li>
+        <li><strong>Flow:</strong> User signs bid (EIP-712) → frontend sends to CRE workflow → CRE stores bid privately and optionally triggers <strong>submitBlindBid(commitment)</strong> with escrow; after the blind-bid deadline CRE computes clearing and calls <strong>forwardBidsToCCA</strong>.</li>
+        <li>Credentials and sensitive data stay in CRE; compliant private transfers follow the same pattern as the Chainlink private transfer demo.</li>
       </ul>
     ),
   },
@@ -61,8 +60,8 @@ const SLIDES = [
           <tbody className="[&_tr]:border-b [&_tr]:border-border">
             <tr><td className="p-3 font-mono">Uniswap CCA</td><td className="p-3">Auction mechanics: create, place bids, clearing price, settlement, pool seed.</td></tr>
             <tr><td className="p-3 font-mono">Our CCA factory</td><td className="p-3">We deploy our own factory (Sepolia) for USDC auctions.</td></tr>
-            <tr><td className="p-3 font-mono">BlindPool contract</td><td className="p-3">Wraps CCA: sealed bids (encrypted), requestReveal → relayer decrypts → forwardBidToCCA.</td></tr>
-            <tr><td className="p-3 font-mono">App (Next.js)</td><td className="p-3">Create auction (ETH/USDC), deploy BlindPool, place sealed bid (encrypt → submitBlindBid).</td></tr>
+            <tr><td className="p-3 font-mono">SilentBid contract</td><td className="p-3">Wraps CCA: submitBlindBid(commitment), admin-only forwardBidToCCA / forwardBidsToCCA (called by CRE).</td></tr>
+            <tr><td className="p-3 font-mono">App (Next.js)</td><td className="p-3">Create auction (ETH/USDC), deploy SilentBid, place sealed bid (commitment → submitBlindBid).</td></tr>
           </tbody>
         </table>
       </div>
@@ -73,7 +72,7 @@ const SLIDES = [
     content: (
       <div className="max-w-3xl mx-auto">
         <p className="text-[11px] text-muted-foreground text-center mb-6">
-          End-to-end flow: sealed bid → reveal → forward to CCA
+          End-to-end flow: sealed bid (commitment) → CRE finalizes → forward to CCA
         </p>
         <div className="space-y-4">
           <div className="border border-accent/40 rounded-lg bg-accent/5 p-4">
@@ -81,21 +80,21 @@ const SLIDES = [
             <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
               <span className="px-3 py-1.5 rounded bg-background border border-border font-mono">User (price + amount)</span>
               <span className="text-muted-foreground">→</span>
-              <span className="px-3 py-1.5 rounded bg-background border border-border font-mono">Zama encrypt (browser)</span>
+              <span className="px-3 py-1.5 rounded bg-background border border-border font-mono">Commitment (browser)</span>
               <span className="text-muted-foreground">→</span>
-              <span className="px-3 py-1.5 rounded bg-accent/20 border border-accent/50 font-mono">submitBlindBid</span>
+              <span className="px-3 py-1.5 rounded bg-accent/20 border border-accent/50 font-mono">submitBlindBid(commitment)</span>
               <span className="text-muted-foreground">→</span>
-              <span className="px-3 py-1.5 rounded bg-muted border border-border font-mono">BlindPool (ciphertexts on-chain)</span>
+              <span className="px-3 py-1.5 rounded bg-muted border border-border font-mono">SilentBid (commitment + escrow onchain)</span>
             </div>
           </div>
           <div className="border border-amber-500/40 rounded-lg bg-amber-500/5 p-4">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-amber-600 mb-3">Phase 2 — After deadline</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-amber-600 mb-3">Phase 2 — After deadline (CRE)</p>
             <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-              <span className="px-3 py-1.5 rounded bg-background border border-border font-mono">requestReveal</span>
+              <span className="px-3 py-1.5 rounded bg-background border border-border font-mono">CRE workflow</span>
               <span className="text-muted-foreground">→</span>
-              <span className="px-3 py-1.5 rounded bg-background border border-border font-mono">Relayer decrypts</span>
+              <span className="px-3 py-1.5 rounded bg-background border border-border font-mono">Price discovery + compliance</span>
               <span className="text-muted-foreground">→</span>
-              <span className="px-3 py-1.5 rounded bg-amber-500/20 border border-amber-500/50 font-mono">forwardBidToCCA</span>
+              <span className="px-3 py-1.5 rounded bg-amber-500/20 border border-amber-500/50 font-mono">forwardBidsToCCA</span>
               <span className="text-muted-foreground">→</span>
               <span className="px-3 py-1.5 rounded bg-muted border border-border font-mono">Uniswap CCA (real bids)</span>
             </div>
@@ -132,7 +131,7 @@ const SLIDES = [
           Thank you
         </p>
         <p className="mt-4 font-mono text-sm text-muted-foreground">
-          BlindPool — Privacy-focused CCA · Sealed-bid token launches
+          SilentBid — Privacy-focused CCA · Sealed-bid token launches
         </p>
       </div>
     ),
@@ -157,7 +156,7 @@ export default function PptPage() {
       <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-12">
         <div className="w-full max-w-4xl">
           <h1 className="font-[var(--font-bebas)] text-3xl sm:text-4xl tracking-tight text-accent mb-2">
-            BlindPool
+            SilentBid
           </h1>
           <p className="font-mono text-xs text-muted-foreground mb-8">EthGlobal · Slide {index + 1} of {SLIDES.length}</p>
 

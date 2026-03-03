@@ -1,4 +1,4 @@
-# BlindPool
+# SilentBid
 
 **Privacy-focused fork of Uniswap's Continuous Clearing Auction (CCA) with sealed-bid configuration.**
 
@@ -42,7 +42,7 @@ Build, simulate, or deploy a **CRE Workflow** that's used as an orchestration la
 
 [Uniswap's Continuous Clearing Auction (CCA)](https://docs.uniswap.org/) is a mechanism for **fair, continuous price discovery** and **liquidity bootstrapping** for a new token — all onchain and permissionless. Bids are automatically integrated over time to determine a market-clearing price and seed liquidity into a Uniswap pool when the auction ends.
 
-**BlindPool** extends CCA by adding **sealed-bid / confidentiality features**: participants submit bids **privately**, so no one else (including bots or MEV actors) can see bid prices or identities before the auction closes. It resembles sealed-bid auctions in traditional finance, but built for onchain DeFi. Research in confidentiality on blockchains points toward **confidential compute** or **zero-knowledge (ZK)** techniques for this kind of privacy.
+**SilentBid** extends CCA by adding **sealed-bid / confidentiality features**: participants submit bids **privately**, so no one else (including bots or MEV actors) can see bid prices or identities before the auction closes. It resembles sealed-bid auctions in traditional finance, but built for onchain DeFi. Research in confidentiality on blockchains points toward **confidential compute** or **zero-knowledge (ZK)** techniques for this kind of privacy.
 
 ## Why It Matters
 
@@ -59,7 +59,7 @@ Build, simulate, or deploy a **CRE Workflow** that's used as an orchestration la
 
 ## Workflow
 
-BlindPool follows the same high-level flow as [Uniswap CCA](https://docs.uniswap.org/contracts/liquidity-launchpad/CCA) (prepare → deploy → bid → price discovery → settlement), but **sealed bids** keep participant data private until the auction closes.
+SilentBid follows the same high-level flow as [Uniswap CCA](https://docs.uniswap.org/contracts/liquidity-launchpad/CCA) (prepare → deploy → bid → price discovery → settlement), but **sealed bids** keep participant data private until the auction closes.
 
 ### Workflow diagram
 
@@ -72,7 +72,7 @@ flowchart LR
     D --> E[Settlement & pool seed]
   end
 
-  subgraph Private["PRIVATE until close (BlindPool)"]
+  subgraph Private["PRIVATE until close (SilentBid)"]
     P1[Bidder identity]
     P2[Bid price / max price]
     P3[Bid amount / budget]
@@ -97,7 +97,7 @@ flowchart LR
 
 Relative to the [CCA contract flow](https://docs.uniswap.org/contracts/liquidity-launchpad/CCA) and [technical docs](https://github.com/Uniswap/continuous-clearing-auction):
 
-| CCA concept | Standard CCA | BlindPool (target) |
+| CCA concept | Standard CCA | SilentBid (target) |
 |-------------|--------------|--------------------|
 | **Bidder identity** | Public (msg.sender / address) | **Private** until auction close |
 | **Max price per bid** | Public (onchain bid param) | **Private** until close |
@@ -126,15 +126,15 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the BlindPool app.
+Open [http://localhost:3000](http://localhost:3000) to view the SilentBid app.
 
 **WalletConnect (optional):** For production wallet connect, set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` in `.env.local` with your [WalletConnect Cloud](https://cloud.walletconnect.com/) project ID. The app runs without it; RainbowKit may show a placeholder until set.
 
 ## Scripts & Testing
 
-Scripts for deploying BlindPool, CCA auctions, and testing on Sepolia (Foundry):
+Scripts for deploying SilentBid, CCA auctions, and testing on Sepolia (Foundry):
 
-- **[BlindPool-scripts](https://github.com/ayushsingh82/BlindPool-scripts)** — Deploy CCA, deploy BlindPool, submit bids, reveal, forward, check status. See the repo README for setup and usage.
+- **[BlindPool-scripts](https://github.com/ayushsingh82/BlindPool-scripts)** — Deploy CCA, deploy SilentBid, submit bids, reveal, forward, check status. See the repo README for setup and usage.
 
 ## Learn More
 
@@ -144,4 +144,4 @@ Scripts for deploying BlindPool, CCA auctions, and testing on Sepolia (Foundry):
 
 ---
 
-© 2025 BlindPool. Privacy-first CCA. Sealed-bid token launches.
+© 2025 SilentBid. Privacy-first CCA. Sealed-bid token launches.

@@ -1,0 +1,72 @@
+/**
+ * SilentBid Auction Finalization Workflow (CRE)
+ *
+ * HTTP trigger: POST body = { auctionId, blindPoolAddress? }
+ * - Loads sealed bids for auction from CRE store / external API (Confidential HTTP).
+ * - Computes clearing price and per-bid allocations offchain.
+ * - Calls BlindPoolCCA.forwardBidsToCCA(blindBidIds, clearMaxPrices, clearAmounts, owners, hookData)
+ *   via admin key (EVM write). Requires CRE consumer or EVMClient integration.
+ *
+ * This stub returns a placeholder; full implementation would:
+ * 1. Fetch bids from store (keyed by auctionId).
+ * 2. Run price discovery (e.g. uniform-price).
+ * 3. Build arrays for forwardBidsToCCA.
+ * 4. Submit via EVM (evmClient or report to consumer contract).
+ *
+ * Refs: plan_execution.md, BlindPool-scripts/src/BlindPoolCCA.sol
+ */
+
+import {
+  HTTPCapability,
+  handler,
+  Runner,
+  decodeJson,
+  type Runtime,
+  type HTTPPayload,
+} from "@chainlink/cre-sdk"
+import { z } from "zod"
+
+const configSchema = z.object({
+  chainId: z.number(),
+  blindPoolAddress: z.string(),
+  rpcUrl: z.string(),
+})
+
+type Config = z.infer<typeof configSchema>
+
+type FinalizePayload = {
+  auctionId: string
+  blindPoolAddress?: string
+}
+
+const onFinalizeRequest = (runtime: Runtime<Config>, payload: HTTPPayload): string => {
+  if (!payload.input || payload.input.length === 0) {
+    throw new Error("Empty request body")
+  }
+
+  const raw = decodeJson(payload.input) as FinalizePayload
+  const auctionId = raw.auctionId
+  const blindPool = raw.blindPoolAddress ?? runtime.config.blindPoolAddress
+
+  runtime.log(`Finalize requested for auction ${auctionId}, blindPool ${blindPool}`)
+
+  // Stub: in production, load bids from store, compute clearing, call forwardBidsToCCA
+  const result = {
+    auctionId,
+    blindPoolAddress: blindPool,
+    status: "stub",
+    message: "Load bids from store, compute clearing price, call forwardBidsToCCA(blindBidIds, clearMaxPrices, clearAmounts, owners, hookData) as admin.",
+  }
+  return JSON.stringify(result)
+}
+
+const initWorkflow = (config: Config) => {
+  const http = new HTTPCapability()
+  const trigger = http.trigger({ authorizedKeys: [] })
+  return [handler(trigger, onFinalizeRequest)]
+}
+
+export async function main() {
+  const runner = await Runner.newRunner<Config>({ configSchema })
+  await runner.run(initWorkflow)
+}

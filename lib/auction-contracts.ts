@@ -103,12 +103,12 @@ export const AUCTION_ABI = [
   },
 ] as const
 
-// ── BlindPool (Zama fhEVM encrypted bidding) ───────────────────────
+// ── SilentBid / BlindPool (CRE commitment-based sealed bids) ───────────────────────
 
 export const BLIND_POOL_FACTORY_ADDRESS =
   (process.env.NEXT_PUBLIC_BLIND_POOL_FACTORY_ADDRESS ?? "") as Address
 
-/** On Anvil, there's no BlindPoolFactory — use this env var to inject the blind pool address directly */
+/** On Anvil, there's no BlindPoolFactory — use this env var to inject the SilentBid (blind pool) address directly */
 export const BLIND_POOL_OVERRIDE =
   (process.env.NEXT_PUBLIC_BLIND_POOL_OVERRIDE ?? "") as Address
 
@@ -136,27 +136,15 @@ export const BLIND_POOL_ABI = [
   {
     type: "function",
     name: "submitBlindBid",
-    inputs: [
-      { name: "_encMaxPrice", type: "bytes32" },
-      { name: "_encAmount", type: "bytes32" },
-      { name: "_inputProof", type: "bytes" },
-    ],
+    inputs: [{ name: "_bidCommitment", type: "bytes32" }],
     outputs: [],
     stateMutability: "payable",
-  },
-  {
-    type: "function",
-    name: "requestReveal",
-    inputs: [],
-    outputs: [],
-    stateMutability: "nonpayable",
   },
   // Views
   { type: "function", name: "admin", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
   { type: "function", name: "cca", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
   { type: "function", name: "blindBidDeadline", inputs: [], outputs: [{ type: "uint64" }], stateMutability: "view" },
   { type: "function", name: "nextBlindBidId", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
-  { type: "function", name: "revealed", inputs: [], outputs: [{ type: "bool" }], stateMutability: "view" },
   {
     type: "function",
     name: "getBlindBidInfo",
@@ -165,6 +153,7 @@ export const BLIND_POOL_ABI = [
       { name: "bidder", type: "address" },
       { name: "ethDeposit", type: "uint256" },
       { name: "forwarded", type: "bool" },
+      { name: "bidCommitment", type: "bytes32" },
     ],
     stateMutability: "view",
   },
@@ -175,26 +164,8 @@ export const BLIND_POOL_ABI = [
     inputs: [
       { name: "blindBidId", type: "uint256", indexed: true },
       { name: "bidder", type: "address", indexed: true },
+      { name: "bidCommitment", type: "bytes32", indexed: false },
     ],
-  },
-  {
-    type: "event",
-    name: "BidsRevealed",
-    inputs: [{ name: "totalBids", type: "uint256", indexed: false }],
-  },
-] as const
-
-// Mock blind bid ABI — used on Anvil where Zama encryption is not available
-export const MOCK_BLIND_BID_ABI = [
-  {
-    type: "function",
-    name: "mockSubmitBlindBid",
-    inputs: [
-      { name: "_maxPrice", type: "uint64" },
-      { name: "_amount", type: "uint64" },
-    ],
-    outputs: [],
-    stateMutability: "payable",
   },
 ] as const
 

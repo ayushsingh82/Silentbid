@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BlindPool — Privacy-Focused CCA & Sealed-Bid Token Launches",
-  description: "BlindPool extends Uniswap's Continuous Clearing Auction with sealed-bid confidentiality. Fair, MEV-resistant token launches onchain.",
+  title: "SilentBid — Privacy-Focused CCA & Sealed-Bid Token Launches",
+  description: "SilentBid extends Uniswap's Continuous Clearing Auction with sealed-bid confidentiality. Fair, MEV-resistant token launches onchain.",
 };
 
 export default function RootLayout({

@@ -100,7 +100,7 @@ function extractAuctionAddress(receipt: { logs: readonly { data: `0x${string}`; 
   return null
 }
 
-type Step = "form" | "funding" | "activating" | "blindpool" | "done"
+type Step = "form" | "funding" | "activating" | "silentbid" | "done"
 
 export function CreateAuctionForm() {
   const router = useRouter()
@@ -160,7 +160,7 @@ export function CreateAuctionForm() {
   const { isLoading: isActivateConfirming, isSuccess: isActivateSuccess, error: activateReceiptError } =
     useWaitForTransactionReceipt({ hash: activateTxHash })
 
-  // Step 4: Deploy BlindPool
+  // Step 4: Deploy SilentBid (privacy wrapper)
   const {
     data: blindPoolTxHash,
     writeContract: writeDeployBlindPool,
@@ -202,7 +202,7 @@ export function CreateAuctionForm() {
   const step: Step = useMemo(() => {
     if (!auctionAddress) return "form"
     if (isBlindPoolSuccess) return "done"
-    if (isActivateSuccess) return "blindpool"
+    if (isActivateSuccess) return "silentbid"
     if (isMintSuccess || fundingSkipped) return "activating"
     return "funding"
   }, [auctionAddress, isBlindPoolSuccess, isActivateSuccess, isMintSuccess, fundingSkipped])
@@ -344,7 +344,7 @@ export function CreateAuctionForm() {
     { key: "form", label: "1. Create" },
     { key: "funding", label: "2. Fund" },
     { key: "activating", label: "3. Activate" },
-    { key: "blindpool", label: "4. Encrypt" },
+    { key: "silentbid", label: "4. SilentBid" },
     { key: "done", label: "5. Done" },
   ] as const
 
@@ -680,22 +680,22 @@ export function CreateAuctionForm() {
         </div>
       )}
 
-      {/* STEP 4: Deploy BlindPool for encrypted bidding */}
-      {step === "blindpool" && auctionAddress && (
+      {/* STEP 4: Deploy SilentBid for sealed-bid bidding */}
+      {step === "silentbid" && auctionAddress && (
         <div className="space-y-6">
           <div className="border border-accent/50 bg-accent/10 px-4 py-3 font-mono text-sm text-accent">
-            Auction activated! Now deploying encrypted bidding.
+            Auction activated! Now deploying CRE sealed-bid (SilentBid).
           </div>
 
           <div className="space-y-3">
             <p className="font-mono text-sm text-foreground">
-              Step 4: Deploy a BlindPool to enable Zama fhEVM encrypted bidding.
+              Step 4: Deploy a SilentBid wrapper to enable Chainlink CRE sealed-bid (commitment-based) bidding.
             </p>
             <p className="font-mono text-[10px] text-muted-foreground break-all">
               Auction: <code className="text-accent/80">{auctionAddress}</code>
             </p>
             <p className="font-mono text-[10px] text-muted-foreground/60">
-              This calls <code>BlindPoolFactory.deployBlindPool(auction)</code>. All bids will be encrypted on-chain until the reveal phase.
+              This calls <code>BlindPoolFactory.deployBlindPool(auction)</code>. Bids are sealed (commitment onchain); CRE finalizes and forwards after the blind bid deadline.
             </p>
           </div>
 
@@ -711,8 +711,8 @@ export function CreateAuctionForm() {
             {isDeployingBlindPool
               ? "Confirm in wallet..."
               : isBlindPoolConfirming
-                ? "Deploying BlindPool..."
-                : "Deploy BlindPool"}
+                ? "Deploying SilentBid..."
+                : "Deploy SilentBid"}
           </button>
         </div>
       )}
@@ -727,7 +727,7 @@ export function CreateAuctionForm() {
             </p>
             {blindPoolAddress && (
               <p className="text-[10px] text-purple-400 break-all">
-                BlindPool: <code>{blindPoolAddress}</code>
+                SilentBid: <code>{blindPoolAddress}</code>
               </p>
             )}
           </div>

@@ -1,7 +1,7 @@
 
 # CCA (Continuous Clearing Auction) Setup — ETH Sepolia
 
-Quick reference for **where to init the auction**, **whether your form is correct**, **which contract to use for bidding**, and **what is already deployed**. No Zama/decryption here — plain CCA only.
+Quick reference for **where to init the auction**, **whether your form is correct**, **which contract to use for bidding**, and **what is already deployed**. Plain CCA only; CRE private bidding is documented in `CRE_INTEGRATION.md`.
 
 ---
 
@@ -132,4 +132,4 @@ So in the UI:
 
 - **Chain:** Add **Sepolia** to your wagmi chains so the app targets ETH Sepolia (factory and your deployments live there).
 
-Zama/decryption can be added later on top of this flow; this doc is only for trying CCA on Sepolia with the existing factory.
+CRE-based sealed bids and private flows are documented in `CRE_INTEGRATION.md`; this doc is for plain CCA on Sepolia with the existing factory.

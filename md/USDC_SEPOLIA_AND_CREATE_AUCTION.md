@@ -6,7 +6,7 @@ For teammates: summary of what was done and the error we still hit when creating
 
 ## Goal
 
-- Use **USDC** as bid currency on **Sepolia** (for Zama / private bidding).
+- Use **USDC** as bid currency on **Sepolia** (for CRE private / compliant bidding).
 - The official Uniswap CCA factory on Sepolia can revert for USDC; we use **our own** CCA factory.
 
 ---

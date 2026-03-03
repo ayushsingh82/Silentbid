@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
 import { parseEther, type Address } from "viem"
-import { AUCTION_ABI, BLIND_POOL_ABI, MOCK_BLIND_BID_ABI, ethToQ96, snapToTickBoundary } from "@/lib/auction-contracts"
-import { IS_ANVIL, chainId } from "@/lib/chain-config"
+import { AUCTION_ABI, BLIND_POOL_ABI, ethToQ96, snapToTickBoundary } from "@/lib/auction-contracts"
+import { computeBidCommitment } from "@/lib/cre-bid"
+import { chainId } from "@/lib/chain-config"
 
 const inputClass = cn(
   "mt-2 w-full border border-border bg-input/50 px-4 py-3 font-mono text-sm",
@@ -41,7 +42,6 @@ export function PlaceBidForm({
   const [amount, setAmount] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [encrypting, setEncrypting] = useState(false)
   const [simulating, setSimulating] = useState(false)
 
   const { data: txHash, writeContract, isPending: isWriting, reset: resetWrite, error: writeError } = useWriteContract()
@@ -51,7 +51,7 @@ export function PlaceBidForm({
   })
 
   const hookError = writeError || receiptError
-  const submitted = encrypting || simulating || isWriting || (isConfirming && !hookError)
+  const submitted = simulating || isWriting || (isConfirming && !hookError)
 
   const isEncrypted = !!blindPoolAddress
 
@@ -91,73 +91,27 @@ export function PlaceBidForm({
 
     const amountWei = parseEther(amount)
 
-    // ── Encrypted path: BlindPool ──
-    console.log("[Bid] isEncrypted:", isEncrypted, "blindPoolAddress:", blindPoolAddress)
+    // ── CRE sealed-bid path: SilentBid (commitment only onchain) ──
     if (isEncrypted && blindPoolAddress) {
-      // BlindPoolCCA uses euint64 (Zama's max encrypted int), so values must fit uint64.
-      // Q96 prices are too large (~2^96 scale), so we use a scaled-down format:
-      //   blindPrice = priceInEth * 1e8  (8 decimal places of precision)
-      // The forwardBidToCCA step converts this back to Q96 for the real CCA.
-      const BLIND_PRICE_SCALE = BigInt(1e8)
-      const priceFloat = parseFloat(maxPrice)
-      if (!Number.isFinite(priceFloat) || priceFloat <= 0) {
-        setError("Max price must be a positive number.")
-        return
-      }
-      // Scale: multiply by 1e8, truncate to integer
-      const scaledPrice = BigInt(Math.round(priceFloat * 1e8))
-      if (scaledPrice === BigInt(0)) {
+      const rawQ96 = ethToQ96(maxPrice)
+      if (rawQ96 === BigInt(0)) {
         setError("Max price is too small to encode.")
         return
       }
-
-      const MAX_UINT64 = BigInt("18446744073709551615")
-      if (scaledPrice > MAX_UINT64) {
-        setError("Max price too large for encrypted bid (must fit uint64).")
-        return
-      }
-      if (amountWei > MAX_UINT64) {
-        setError("Amount too large for encrypted bid (must fit uint64).")
-        return
-      }
-
-      // On Anvil: use mockSubmitBlindBid (no Zama encryption)
-      if (IS_ANVIL) {
-        writeContract({
-          address: blindPoolAddress,
-          abi: MOCK_BLIND_BID_ABI,
-          functionName: "mockSubmitBlindBid",
-          args: [scaledPrice, amountWei],
-          value: amountWei,
-        })
-        return
-      }
-
-      // On Sepolia: encrypt with Zama SDK then call submitBlindBid
-      setEncrypting(true)
-      try {
-        const { encryptBidInputs } = await import("@/lib/zama")
-        const { handles, inputProof } = await encryptBidInputs(
-          blindPoolAddress,
-          address,
-          scaledPrice,
-          amountWei,
-        )
-
-        setEncrypting(false)
-
-        writeContract({
-          address: blindPoolAddress,
-          abi: BLIND_POOL_ABI,
-          functionName: "submitBlindBid",
-          args: [handles[0], handles[1], inputProof],
-          value: amountWei, // ETH escrow
-        })
-      } catch (err: unknown) {
-        setEncrypting(false)
-        const msg = err instanceof Error ? err.message : String(err)
-        setError(`Encryption failed: ${msg}`)
-      }
+      const maxPriceQ96 = snapToTickBoundary(rawQ96, tickSpacing)
+      const commitment = computeBidCommitment(
+        auctionId as `0x${string}`,
+        address,
+        maxPriceQ96,
+        amountWei
+      )
+      writeContract({
+        address: blindPoolAddress,
+        abi: BLIND_POOL_ABI,
+        functionName: "submitBlindBid",
+        args: [commitment],
+        value: amountWei,
+      })
       return
     }
 
@@ -222,9 +176,7 @@ export function PlaceBidForm({
     <form onSubmit={handleSubmit} className="mt-6 max-w-sm space-y-5">
       {isEncrypted && (
         <div className="border border-accent/50 bg-accent/10 px-4 py-3 font-mono text-[10px] text-accent">
-          {IS_ANVIL
-            ? "Anvil mode: bids use mockSubmitBlindBid (no encryption). Values are trivially encrypted on-chain."
-            : "Bids are encrypted with Zama fhEVM. Your price and amount are hidden on-chain until reveal."}
+          Sealed bids via Chainlink CRE: only a commitment is stored onchain; price and amount are private until the CRE workflow finalizes the auction.
         </div>
       )}
 
@@ -244,11 +196,11 @@ export function PlaceBidForm({
           role="status"
           className="border border-accent/50 bg-accent/10 px-4 py-3 font-mono text-sm text-accent"
         >
-          {isEncrypted ? "Encrypted bid placed!" : "Bid placed!"} Tx: {txHash?.slice(0, 10)}...
+          {isEncrypted ? "Sealed bid placed!" : "Bid placed!"} Tx: {txHash?.slice(0, 10)}...
           <br />
           <span className="text-[10px] text-muted-foreground">
             {isEncrypted
-              ? "Your bid is sealed on-chain. It will be revealed after the blind bid deadline."
+              ? "Your bid is sealed (commitment onchain). CRE will finalize and forward bids after the blind bid deadline."
               : `You will receive ${tokenSymbol} at the clearing price when the auction ends.`}
           </span>
           <div className="mt-3">
@@ -365,12 +317,12 @@ export function PlaceBidForm({
           <>
             <p>
               {IS_ANVIL
-                ? <>Calls <code>mockSubmitBlindBid(maxPrice, amount)</code> on the BlindPool with <code>msg.value = amount</code>.</>
-                : <>Calls <code>submitBlindBid(encMaxPrice, encAmount, inputProof)</code> on the BlindPool with <code>msg.value = amount</code>.</>
+                ? <>Calls <code>mockSubmitBlindBid(maxPrice, amount)</code> on the SilentBid contract with <code>msg.value = amount</code>.</>
+                : <>Calls <code>submitBlindBid(commitment)</code> on the SilentBid contract with <code>msg.value = amount</code>.</>
               }
             </p>
             <p>
-              BlindPool: <code className="text-accent/80 break-all">{blindPoolAddress}</code>
+              SilentBid: <code className="text-accent/80 break-all">{blindPoolAddress}</code>
             </p>
           </>
         ) : (

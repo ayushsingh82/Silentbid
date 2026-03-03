@@ -1,0 +1,8 @@
+{
+  "chainId": 11155111,
+  "blindPoolDomainName": "SilentBid CRE Bid",
+  "blindPoolDomainVersion": "1",
+  "verifyingContract": "0x0000000000000000000000000000000000000000",
+  "complianceApiUrl": "",
+  "complianceApiKeyOwner": ""
+}

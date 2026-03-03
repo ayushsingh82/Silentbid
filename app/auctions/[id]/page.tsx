@@ -80,7 +80,6 @@ export default function AuctionDetailPage() {
   const [blindPoolLoading, setBlindPoolLoading] = useState(false)
   const [blindPoolDeadline, setBlindPoolDeadline] = useState<bigint | null>(null)
   const [blindPoolBidCount, setBlindPoolBidCount] = useState<number | null>(null)
-  const [blindPoolRevealed, setBlindPoolRevealed] = useState(false)
 
 
   // Look for existing BlindPool from factory events (skip if override is set)
@@ -108,7 +107,7 @@ export default function AuctionDetailPage() {
           if (logs.length > 0) {
             const latest = logs[logs.length - 1]
             const addr = latest.args.blindPool as Address
-            console.log("[BlindPool] Found:", addr, "for CCA:", auctionAddress)
+            console.log("[SilentBid] Found:", addr, "for CCA:", auctionAddress)
             setBlindPoolAddress(addr)
             if (latest.args.blindBidDeadline) {
               setBlindPoolDeadline(BigInt(latest.args.blindBidDeadline))
@@ -117,9 +116,9 @@ export default function AuctionDetailPage() {
           }
           to = from - BigInt(1)
         }
-        console.log("[BlindPool] No BlindPool found for CCA:", auctionAddress)
+        console.log("[SilentBid] No SilentBid found for CCA:", auctionAddress)
       } catch (err) {
-        console.error("[BlindPool] Search error:", err)
+        console.error("[SilentBid] Search error:", err)
       } finally {
         setBlindPoolLoading(false)
       }
@@ -138,12 +137,10 @@ export default function AuctionDetailPage() {
           contracts: [
             { address: blindPoolAddress, abi: BLIND_POOL_ABI, functionName: "blindBidDeadline" },
             { address: blindPoolAddress, abi: BLIND_POOL_ABI, functionName: "nextBlindBidId" },
-            { address: blindPoolAddress, abi: BLIND_POOL_ABI, functionName: "revealed" },
           ],
         })
         if (results[0].result !== undefined) setBlindPoolDeadline(BigInt(results[0].result as bigint))
         if (results[1].result !== undefined) setBlindPoolBidCount(Number(results[1].result))
-        if (results[2].result !== undefined) setBlindPoolRevealed(results[2].result as boolean)
       } catch {
         // BlindPool may not be fully deployed yet
       }
@@ -235,7 +232,7 @@ export default function AuctionDetailPage() {
     return s
   }, [auction, currentBlock])
 
-  // Can bid if auction is active AND (no blind pool, or blind pool deadline not passed)
+  // Can bid if auction is active AND (no silent-bid wrapper, or silent-bid deadline not passed)
   const blindBidOpen = blindPoolAddress && blindPoolDeadline && currentBlock
     ? currentBlock < blindPoolDeadline
     : true
@@ -291,7 +288,7 @@ export default function AuctionDetailPage() {
         </p>
         <p className="mt-1 font-mono text-[10px] text-muted-foreground/60">
           Token {auction.token.slice(0, 6)}...{auction.token.slice(-4)} · {networkName}
-          {blindPoolAddress && <> · Powered by <span className="text-purple-400">Zama fhEVM</span></>}
+          {blindPoolAddress && <> · Powered by <span className="text-purple-400">Chainlink CRE</span></>}
         </p>
 
         <dl className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6 font-mono text-sm">
@@ -306,7 +303,7 @@ export default function AuctionDetailPage() {
                 <dd className="mt-1 text-purple-400 text-[10px]">hidden until reveal</dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Encrypted bids</dt>
+                <dt className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Sealed bids</dt>
                 <dd className="mt-1 text-foreground">{blindPoolBidCount ?? 0}</dd>
               </div>
               <div>
@@ -336,11 +333,9 @@ export default function AuctionDetailPage() {
               <div>
                 <dt className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Phase</dt>
                 <dd className="mt-1 text-foreground text-[10px]">
-                  {blindPoolRevealed
-                    ? "Revealed — forwarding to CCA"
-                    : blindPoolDeadline && currentBlock && currentBlock >= blindPoolDeadline
-                      ? "Bidding closed — awaiting reveal"
-                      : "Accepting encrypted bids"}
+                  {blindPoolDeadline && currentBlock && currentBlock >= blindPoolDeadline
+                    ? "Bidding closed — CRE will finalize"
+                    : "Accepting sealed bids"}
                 </dd>
               </div>
             </>
@@ -383,9 +378,8 @@ export default function AuctionDetailPage() {
         {/* ── Encryption info ── */}
         {blindPoolAddress && (
           <div className="mt-8 border border-purple-500/30 bg-purple-500/5 p-4 font-mono text-[10px] text-muted-foreground space-y-1">
-            <p className="text-purple-400 uppercase tracking-widest">Zama fhEVM encrypted auction</p>
-            <p>All bids are encrypted on-chain. Price and amount are hidden until the reveal phase.</p>
-            <p>After the bid deadline, bids are decrypted and forwarded to the CCA for settlement.</p>
+            <p className="text-purple-400 uppercase tracking-widest">Chainlink CRE sealed-bid auction</p>
+            <p>Only a commitment is stored onchain; price and amount stay private. CRE workflow finalizes and forwards bids to the CCA after the blind bid deadline.</p>
           </div>
         )}
 
@@ -395,11 +389,11 @@ export default function AuctionDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-[1fr,minmax(280px,380px)] gap-8 md:gap-12 items-start">
               <div className="min-w-0">
                 <h2 className="font-[var(--font-bebas)] text-2xl md:text-3xl tracking-tight">
-                  {blindPoolAddress ? "Place encrypted bid" : "Place sealed bid"}
+                  {blindPoolAddress ? "Place sealed bid" : "Place bid"}
                 </h2>
                 <p className="mt-2 font-mono text-xs text-muted-foreground">
                   {blindPoolAddress
-                    ? "Your bid is encrypted with Zama fhEVM. Price and amount are hidden until the reveal phase."
+                    ? "Only a commitment is onchain; CRE keeps price and amount private until finalization."
                     : "Your bid is confidential until the auction closes."}
                 </p>
                 <PlaceBidForm

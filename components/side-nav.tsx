@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 const navItems: ({ id: string; label: string } | { href: string; label: string })[] = [
-  { id: "hero", label: "BlindPool" },
+  { id: "hero", label: "SilentBid" },
   { id: "signals", label: "Features" },
   { id: "work", label: "Mechanism" },
   { id: "principles", label: "Principles" },

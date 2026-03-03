@@ -30,7 +30,7 @@ export default function LogoPage() {
           </svg>
         </span>
         <span className="font-[var(--font-bebas)] text-6xl sm:text-7xl md:text-8xl tracking-tight text-foreground">
-          BlindPool
+          SilentBid
         </span>
         <p className="font-mono text-sm text-muted-foreground">Privacy-Focused CCA · Sealed-Bid Launches</p>
       </div>
