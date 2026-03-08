@@ -6,43 +6,75 @@
 
 ---
 
-## TODO
+## What we built
 
-**Chainlink Hackathon - Privacy Track ($6,000)**
+SilentBid is a full-stack app for running sealed-bid CCA auctions on Sepolia. The flow:
 
-Participating in the Chainlink hackathon. This project integrates **Chainlink Confidential Compute** (early access) for private transactions and/or **CRE's Confidential HTTP** capability to build privacy-preserving workflows, where API credentials, selected request and response data, and value flows are protected, and sensitive application logic executes offchain.
+1. **Create auction** — Deploy a CCA auction (or use an existing one), then deploy a SilentBid wrapper via `SilentBidFactory.deploySilentBid(auction)`. Only a commitment is stored onchain; bid details stay offchain.
+2. **Place sealed bid** — User signs an EIP-712 bid (maxPrice, amount, auctionId) in the wallet. The frontend sends the signed payload to `POST /api/cre/bid`; the API verifies the signature, computes the commitment, and stores the bid. The frontend then calls `BlindPoolCCA.submitBlindBid(commitment)` with `msg.value = amount`. Price and amount are never written onchain.
+3. **Finalize** — After the blind-bid deadline, `POST /api/cre/finalize` (or the CRE workflow) loads stored bids, runs uniform-price discovery, computes the clearing price and winner allocations, and returns calldata for `forwardBidsToCCA`. An operator or CRE backend submits that transaction to forward all bids into the underlying CCA.
+4. **Settle** — `POST /api/cre/settle` consumes the final allocations and generates the settlement plan (winner payouts, refunds, treasury). CRE or a relayer can then execute the actual transfers.
 
-This track focuses on applications that require secure API connectivity and/or compliant non-public token movement, enabling decentralized workflows without exposing secrets, sensitive inputs or outputs, or internal transaction flows onchain.
+**Components:**
 
-*Note: Confidential HTTP and Chainlink Confidential Compute (early access) will be available from Feb 16th.*
+- **This repo (frontend)** — Next.js app: browse auctions, create auction + deploy SilentBid, place sealed bid (EIP-712 → `/api/cre/bid` → `submitBlindBid`). API routes: `/api/cre/bid`, `/api/cre/finalize`, `/api/cre/settle`.
+- **blindpool-cre/** — Chainlink CRE workflows: bid-ingestion (verify EIP-712, compute commitment, optional compliance) and finalize (load bids, run price discovery, build `forwardBidsToCCA` calldata). Can be simulated with the CRE CLI.
+- **[Silentbid-scripts](https://github.com/ayushsingh82/Silentbid-scripts)** — Solidity contracts (BlindPoolCCA, BlindPoolFactory) and Foundry scripts for deploy, bid, check, reveal.
 
-### Example use cases and design patterns
+---
 
-- **Sealed-bid auctions & private payments:** Bidders submit payments via compliant private transactions; auction logic runs offchain to determine winners; settlement and refunds occur privately.
-- **Private treasury and fund operations:** Move funds internally without exposing detailed transaction flows, while retaining the ability to withdraw to public token contracts.
-- **Private governance payouts & incentives:** Governance or scoring logic runs offchain; rewards, grants, or incentives are distributed via compliant private transactions; individual recipients and amounts are not publicly visible.
-- **Private rewards & revenue distribution:** Offchain computation determines allocations; payments executed via private transactions; supports rebates, revenue shares, bounties, and incentives.
-- **OTC and brokered settlements:** Settle negotiated trades privately between counterparties, with execution coordinated offchain.
-- **Secure Web2 API integration for decentralized workflows:** Use external APIs in CRE without exposing API keys or sensitive request & response parameters onchain.
-- **Protected request–driven automation:** Trigger offchain or onchain workflows based on API data while keeping credentials and selected request inputs confidential.
-- **Safe access to regulated or high-risk APIs:** Interact with APIs where leaked credentials or request parameters could cause financial, security, or compliance risk.
-- **Credential-secure data ingestion and processing:** Fetch and process external data offchain using CRE while preventing secrets from being exposed to the blockchain or logs.
-- **Controlled offchain data handling with auditability:** Execute API requests offchain with reliable execution guarantees and traceable usage, without writing sensitive inputs onchain.
+## How we use Chainlink CRE
 
-### Requirements
+We use **Chainlink Runtime Environment (CRE)** so sealed-bid data and auction logic run offchain. Only commitments and settlement results touch the chain; bid prices, amounts, and identities stay private until after the auction closes. The app exposes three API routes that mirror CRE workflows and can be backed by CRE + **Confidential HTTP** in production.
 
-Build, simulate, or deploy a **CRE Workflow** that's used as an orchestration layer within your project. Your workflow should:
+### CRE / Bid — `POST /api/cre/bid`
 
-- Integrate at least one blockchain with an external API, system, data source, LLM, or AI agent
-- Demonstrate a successful simulation (via the CRE CLI) or a live deployment on the CRE network
+Handles sealed bid ingestion: the frontend sends an **EIP-712 signed bid** (sender, auctionId, maxPrice, amount, timestamp). The route:
 
-## What It Is
+1. **Validates** the payload (addresses, positive amounts, required fields).
+2. **Verifies** the EIP-712 signature with the same domain and types as the frontend (`SILENTBID_DOMAIN`, `SILENTBID_BID_TYPES`).
+3. **Computes the commitment** as `keccak256(abi.encodePacked(auctionId, sender, maxPrice, amount, timestamp))` — this is what gets submitted onchain via `BlindPoolCCA.submitBlindBid(commitment)` with `msg.value = amount`.
+4. **Stores the bid** (commitment + plaintext for finalize) in the in-memory bid store. In production this can be forwarded to a CRE workflow via **Confidential HTTP**, so API keys and bid data never appear onchain or in public logs.
+
+The **blindpool-cre** repo defines a CRE workflow `workflows/bid-ingestion` that does the same steps (decode JSON → verify EIP-712 → compute commitment → optional compliance call via Confidential HTTP → return commitment for the app to call `submitBlindBid`). You can simulate it with the CRE CLI and, when deployed, call it via Confidential HTTP instead of the Next.js route.
+
+### CRE / Finalize — `POST /api/cre/finalize`
+
+After the blind-bid deadline, this route (or the CRE **finalize** workflow):
+
+1. **Loads** all stored bids for the given `auctionId`.
+2. **Runs uniform-price discovery**: sort bids by maxPrice descending, compute clearing price (lowest winning bid’s maxPrice), and allocate tokens at that clearing price.
+3. **Builds** the payload for `BlindPoolCCA.forwardBidsToCCA` (clearing price, winning bids, calldata). An operator or CRE backend then submits that transaction onchain so all sealed bids are forwarded into the underlying CCA.
+
+The CRE workflow `workflows/finalize` in **blindpool-cre** implements the same logic and can be triggered via HTTP; it returns the calldata so the app or a relayer can call `forwardBidsToCCA`.
+
+### CRE / Settle — `POST /api/cre/settle`
+
+Consumes the **allocations** produced by finalize (per-bidder: allocated tokens, cost, original escrow, winner/loser). The route:
+
+1. **Validates** `auctionId` and the `allocations` array.
+2. **Builds a settlement plan**: for each winner — token payout + any excess-escrow refund; for each loser — full refund of escrowed amount.
+3. **Returns** the plan (list of payout/refund actions with recipient and amount). In production, a **CRE settle workflow** or relayer can execute these via compliant private transfers and onchain calls, so individual payouts and refunds stay confidential.
+
+### Workflow summary
+
+| Step    | Route / CRE workflow | What runs offchain | What goes onchain |
+|--------|------------------------|--------------------|--------------------|
+| **Bid** | `/api/cre/bid` ↔ `workflows/bid-ingestion` | Verify EIP-712, compute commitment, store bid (optionally call compliance via Confidential HTTP) | `submitBlindBid(commitment)` + `msg.value` |
+| **Finalize** | `/api/cre/finalize` ↔ `workflows/finalize` | Load bids, run price discovery, build `forwardBidsToCCA` calldata | `forwardBidsToCCA(...)` (one tx) |
+| **Settle** | `/api/cre/settle` (and CRE settle workflow) | Build payout/refund plan from allocations | Compliant private transfers / contract calls per the plan |
+
+Sensitive data (bid prices, amounts, identities, payout details) is handled only in the API and CRE workflows; the chain sees only commitments and the batched forward/settlement results.
+
+---
+
+## What it is
 
 [Uniswap's Continuous Clearing Auction (CCA)](https://docs.uniswap.org/) provides **fair, continuous price discovery** and **liquidity bootstrapping** for a new token — onchain and permissionless. Bids are integrated over time to determine a market-clearing price and seed liquidity into a Uniswap pool when the auction ends.
 
 **SilentBid** adds **sealed-bid privacy** on top of CCA: participants submit bids privately so no one (validators, MEV bots, other bidders) can see bid prices or amounts before the auction closes. It uses **Chainlink Confidential Compute** and **CRE Confidential HTTP** so sensitive bid data stays offchain until settlement.
 
-## Why It Matters
+## Why it matters
 
 - **No pre-bid sniping or front-running** — Bids stay hidden until the auction closes.
 - **MEV-resistant** — Strategic bid data is not visible onchain during the auction.
@@ -50,7 +82,7 @@ Build, simulate, or deploy a **CRE Workflow** that's used as an orchestration la
 
 ---
 
-## Workflow
+## Workflow (high level)
 
 SilentBid follows the same high-level flow as [Uniswap CCA](https://docs.uniswap.org/contracts/liquidity-launchpad/CCA) (prepare → deploy → bid → price discovery → settlement), but **sealed bids** keep participant data private until the auction closes.
 
