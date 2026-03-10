@@ -75,7 +75,7 @@ export function ColophonSection() {
     >
       {/* Section header */}
       <div ref={headerRef} className="mb-16">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">04 / Colophon</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">05 / Colophon</span>
         <h2 className="mt-4 font-[var(--font-bebas)] text-5xl md:text-7xl tracking-tight">CREDITS</h2>
       </div>
 
@@ -97,6 +97,7 @@ export function ColophonSection() {
             <li className="font-mono text-xs text-foreground/80">Next.js</li>
             <li className="font-mono text-xs text-foreground/80">Tailwind CSS</li>
             <li className="font-mono text-xs text-foreground/80">Uniswap CCA</li>
+            <li className="font-mono text-xs text-foreground/80">Chainlink CRE</li>
           </ul>
         </div>
 
