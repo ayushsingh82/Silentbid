@@ -11,7 +11,7 @@ const experiments = [
   {
     title: "Sealed-Bid CCA",
     medium: "Core Mechanism",
-    description: "Privacy-focused fork of Uniswap's CCA. Bids are confidential until auction close.",
+    description: "Chainlink CRE orchestrates sealed bids. You sign with EIP-712; only the commitment is onchain. CRE verifies and stores the confidential message, then finalizes and forwards after the blind deadline.",
     span: "col-span-2 row-span-2",
   },
   {
@@ -23,7 +23,7 @@ const experiments = [
   {
     title: "No MEV Leak",
     medium: "Privacy Layer",
-    description: "Bots and MEV actors cannot see bid prices or identities before close.",
+    description: "Bid price and amount stay in CRE; only the hash is onchain. Bots and MEV cannot see your bid before close.",
     span: "col-span-1 row-span-2",
   },
   {
@@ -33,9 +33,9 @@ const experiments = [
     span: "col-span-1 row-span-1",
   },
   {
-    title: "ZK / Confidential Compute",
-    medium: "Cryptography",
-    description: "Confidentiality via ZK proofs or confidential compute. Enforceable and fair.",
+    title: "CRE + EIP-712",
+    medium: "Confidential Messages",
+    description: "Chainlink CRE and EIP-712 signed bids. Confidential HTTP keeps request/response private; CRE workflow enforces fairness and settlement.",
     span: "col-span-2 row-span-1",
   },
   {
@@ -102,7 +102,7 @@ export function WorkSection() {
           <h2 className="mt-4 font-[var(--font-bebas)] text-5xl md:text-7xl tracking-tight">HOW IT WORKS</h2>
         </div>
         <p className="hidden md:block max-w-xs font-mono text-xs text-muted-foreground text-right leading-relaxed">
-          Sealed-bid CCA, liquidity bootstrapping, and privacy-first token launches onchain.
+          EIP-712 signed bids, CRE workflows, and commitment-onchain. Privacy-first token launches.
         </p>
       </div>
 

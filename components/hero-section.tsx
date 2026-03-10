@@ -60,7 +60,7 @@ export function HeroSection() {
         </h2>
 
         <p className="mt-12 max-w-md font-mono text-sm text-muted-foreground leading-relaxed">
-          A fork of Uniswap&apos;s Continuous Clearing Auction with sealed-bid confidentiality. Submit bids privately — no MEV sniping, no front-running. Fair, onchain price discovery that seeds liquidity when the auction closes.
+          A fork of Uniswap&apos;s Continuous Clearing Auction with sealed-bid confidentiality. You sign your bid with EIP-712; only a commitment goes onchain. Chainlink CRE stores and verifies the confidential message offchain, then finalizes and forwards bids after the blind deadline. No MEV sniping, fair onchain price discovery.
         </p>
 
         <div className="mt-16 flex items-center gap-8">
@@ -83,7 +83,7 @@ export function HeroSection() {
       {/* Floating info tag */}
       <div className="absolute bottom-8 right-8 md:bottom-12 md:right-12">
         <div className="border border-border px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          v.01 / CCA + Sealed-Bid
+          v.01 / CCA + CRE + EIP-712
         </div>
       </div>
     </section>

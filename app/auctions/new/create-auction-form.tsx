@@ -700,21 +700,39 @@ export function CreateAuctionForm() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleDeploySilentBid}
-            disabled={isDeployingSilentBid || isSilentBidConfirming}
-            className={cn(
-              "border border-purple-500/40 px-6 py-3 font-mono text-xs uppercase tracking-widest text-purple-400",
-              "hover:bg-purple-500/10 transition-colors disabled:opacity-50 disabled:pointer-events-none",
-            )}
-          >
-            {isDeployingSilentBid
-              ? "Confirm in wallet..."
-              : isSilentBidConfirming
-                ? "Deploying SilentBid..."
-                : "Deploy SilentBid"}
-          </button>
+          {!SILENTBID_FACTORY_ADDRESS || SILENTBID_FACTORY_ADDRESS === "0x" ? (
+            <div
+              role="alert"
+              className="border border-amber-500/50 bg-amber-500/10 px-4 py-3 font-mono text-sm text-amber-600 dark:text-amber-400"
+            >
+              <p className="font-semibold">SilentBid factory not configured</p>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                Set <code className="text-foreground">NEXT_PUBLIC_BLIND_POOL_FACTORY_ADDRESS</code> or{" "}
+                <code className="text-foreground">NEXT_PUBLIC_SILENTBID_FACTORY_ADDRESS</code> in{" "}
+                <code className="text-foreground">.env.local</code> to the deployed SilentBidFactory address on Sepolia, then restart the dev server.
+              </p>
+              <p className="mt-2 text-[10px] text-muted-foreground/80">
+                Deploy the factory once with the scripts repo:{" "}
+                <code>forge script script/DeploySilentBidFactory.s.sol --rpc-url ... --broadcast</code>
+              </p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleDeploySilentBid}
+              disabled={isDeployingSilentBid || isSilentBidConfirming}
+              className={cn(
+                "border border-purple-500/40 px-6 py-3 font-mono text-xs uppercase tracking-widest text-purple-400",
+                "hover:bg-purple-500/10 transition-colors disabled:opacity-50 disabled:pointer-events-none",
+              )}
+            >
+              {isDeployingSilentBid
+                ? "Confirm in wallet..."
+                : isSilentBidConfirming
+                  ? "Deploying SilentBid..."
+                  : "Deploy SilentBid"}
+            </button>
+          )}
         </div>
       )}
 

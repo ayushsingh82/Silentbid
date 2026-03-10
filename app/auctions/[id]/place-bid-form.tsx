@@ -6,7 +6,7 @@ import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionRec
 import { parseEther, type Address } from "viem"
 import { AUCTION_ABI, SILENTBID_ABI, ethToQ96, snapToTickBoundary } from "@/lib/auction-contracts"
 import { computeBidCommitment, buildBidTypedData } from "@/lib/cre-bid"
-import { chainId, IS_ANVIL } from "@/lib/chain-config"
+import { chainId, IS_ANVIL, blockExplorerUrl } from "@/lib/chain-config"
 
 const inputClass = cn(
   "mt-2 w-full border border-border bg-input/50 px-4 py-3 font-mono text-sm",
@@ -253,7 +253,19 @@ export function PlaceBidForm({
           role="status"
           className="border border-accent/50 bg-accent/10 px-4 py-3 font-mono text-sm text-accent"
         >
-          {isEncrypted ? "Sealed bid placed!" : "Bid placed!"} Tx: {txHash?.slice(0, 10)}...
+          {isEncrypted ? "Sealed bid placed!" : "Bid placed!"}{" "}
+          {txHash && blockExplorerUrl ? (
+            <a
+              href={`${blockExplorerUrl}/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent rounded"
+            >
+              Tx: {txHash.slice(0, 10)}…
+            </a>
+          ) : (
+            <>Tx: {txHash?.slice(0, 10)}…</>
+          )}
           <br />
           <span className="text-[10px] text-muted-foreground">
             {isEncrypted

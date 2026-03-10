@@ -19,7 +19,7 @@ export function PrinciplesSection() {
         { text: "SEALED ", highlight: false },
         { text: "BIDS", highlight: true },
       ],
-      description: "Bids are private until the auction closes. No leakage to MEV or snipers.",
+      description: "You sign your bid with EIP-712. Only a commitment is onchain; CRE stores and verifies the confidential message. No leakage to MEV or snipers until the auction closes.",
       align: "left",
     },
     {
@@ -37,7 +37,7 @@ export function PrinciplesSection() {
         { text: "PRIVACY ", highlight: false },
         { text: "BY DESIGN", highlight: true },
       ],
-      description: "ZK proofs or confidential compute. Cryptographic confidentiality, onchain enforceability.",
+      description: "Chainlink CRE and confidential EIP-712 messages. Bid data stays offchain; CRE workflow finalizes and forwards. Cryptographic confidentiality, onchain enforceability.",
       align: "left",
     },
     {
@@ -46,7 +46,7 @@ export function PrinciplesSection() {
         { text: "EQUITABLE ", highlight: false },
         { text: "LAUNCHES", highlight: true },
       ],
-      description: "More equitable token launch experience. Built on Uniswap's CCA, extended for privacy.",
+      description: "More equitable token launch experience. Built on Uniswap's CCA, extended with CRE for privacy.",
       align: "right",
     },
   ]

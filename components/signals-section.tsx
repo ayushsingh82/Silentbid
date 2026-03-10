@@ -11,12 +11,12 @@ const signals = [
   {
     date: "2025.06.10",
     title: "Sealed Bids",
-    note: "Submit bids privately. No one sees your price or identity until the auction closes.",
+    note: "EIP-712 signed bid; only commitment onchain. CRE stores the confidential message and finalizes after the blind deadline.",
   },
   {
     date: "2025.05.28",
     title: "MEV Resistance",
-    note: "Eliminates pre-bid sniping and front-running. Strategic bid info stays confidential.",
+    note: "Eliminates pre-bid sniping and front-running. Bid price and amount stay in CRE until close.",
   },
   {
     date: "2025.05.15",
@@ -30,8 +30,8 @@ const signals = [
   },
   {
     date: "2025.04.12",
-    title: "ZK / Confidential Compute",
-    note: "Privacy via zero-knowledge proofs or confidential compute. Onchain enforceability.",
+    title: "CRE + EIP-712",
+    note: "Chainlink CRE verifies EIP-712 and keeps bid data confidential. CRE workflow forwards to CCA at settlement.",
   },
 ]
 

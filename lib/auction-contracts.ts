@@ -105,8 +105,14 @@ export const AUCTION_ABI = [
 
 // ── SilentBid (CRE commitment-based sealed bids) ───────────────────────
 
-export const SILENTBID_FACTORY_ADDRESS =
-  (process.env.NEXT_PUBLIC_SILENTBID_FACTORY_ADDRESS ?? process.env.NEXT_PUBLIC_BLIND_POOL_FACTORY_ADDRESS ?? "") as Address
+/** Sepolia fallback so the app works without .env.local; override with env for your own factory */
+const SEPOLIA_SILENTBID_FACTORY = "0xe4d9d1ab7F7d1AbB85b3EF7cDb4505c8D5a74fB5" as Address
+
+export const SILENTBID_FACTORY_ADDRESS = (
+  process.env.NEXT_PUBLIC_SILENTBID_FACTORY_ADDRESS ??
+  process.env.NEXT_PUBLIC_BLIND_POOL_FACTORY_ADDRESS ??
+  (IS_ANVIL ? "" : SEPOLIA_SILENTBID_FACTORY)
+) as Address
 
 /** On Anvil, use this env var to inject the SilentBid address directly when no factory */
 export const SILENTBID_OVERRIDE =

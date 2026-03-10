@@ -64,13 +64,13 @@ export function AuctionList({ filter }: { filter?: AuctionStatus }) {
 
       const latestBlock = await publicClient.getBlockNumber()
 
-      // Fetch AuctionCreated events (paginate in 1000-block chunks)
-      const CHUNK = BigInt(1000)
+      // Fetch AuctionCreated events in large chunks (fewer RPC calls)
+      const LOG_CHUNK = BigInt(10_000)
       const allLogs: { auction: Address; token: Address }[] = []
       let from = FACTORY_DEPLOY_BLOCK
 
       while (from <= latestBlock) {
-        const to = from + CHUNK - BigInt(1) > latestBlock ? latestBlock : from + CHUNK - BigInt(1)
+        const to = from + LOG_CHUNK - BigInt(1) > latestBlock ? latestBlock : from + LOG_CHUNK - BigInt(1)
         const chunk = await publicClient.getLogs({
           address: CCA_FACTORY,
           event: FACTORY_ABI[0],
@@ -85,27 +85,44 @@ export function AuctionList({ filter }: { filter?: AuctionStatus }) {
         from = to + BigInt(1)
       }
 
-      // Read each auction's state (creation order = allLogs order, so CCA1, CCA2, ...)
-      const raw = await Promise.all(
-        allLogs.map(async (log) => {
-          const results = await publicClient.multicall({
-            contracts: [
-              { address: log.auction, abi: AUCTION_ABI, functionName: "startBlock" },
-              { address: log.auction, abi: AUCTION_ABI, functionName: "endBlock" },
-              { address: log.auction, abi: AUCTION_ABI, functionName: "clearingPrice" },
-              { address: log.auction, abi: AUCTION_ABI, functionName: "floorPrice" },
-              { address: log.auction, abi: AUCTION_ABI, functionName: "nextBidId" },
-              { address: log.auction, abi: AUCTION_ABI, functionName: "currencyRaised" },
-              { address: log.auction, abi: AUCTION_ABI, functionName: "totalSupply" },
-            ],
-          })
+      // Batch all auction reads into fewer multicalls (7 calls per auction; batch up to 50 calls per multicall)
+      const READS_PER_AUCTION = 7
+      const MULTICALL_BATCH = 49 // 7 * 7 auctions per batch to stay under typical RPC limits
+      const raw: Array<{
+        address: Address
+        token: Address
+        startBlock: bigint
+        endBlock: bigint
+        clearingPrice: string
+        clearingPriceRaw: bigint
+        floorPrice: string
+        floorPriceRaw: bigint
+        bidCount: number
+        currencyRaised: string
+        totalSupply: string
+        status: AuctionStatus
+      }> = []
 
-          const startBlock = (results[0].result as bigint) ?? BigInt(0)
-          const endBlock = (results[1].result as bigint) ?? BigInt(0)
-          const clearingPriceRaw = (results[2].result as bigint) ?? BigInt(0)
-          const floorPriceRaw = (results[3].result as bigint) ?? BigInt(0)
+      for (let i = 0; i < allLogs.length; i += MULTICALL_BATCH / READS_PER_AUCTION) {
+        const batch = allLogs.slice(i, i + MULTICALL_BATCH / READS_PER_AUCTION)
+        const contracts = batch.flatMap((log) => [
+          { address: log.auction, abi: AUCTION_ABI, functionName: "startBlock" as const },
+          { address: log.auction, abi: AUCTION_ABI, functionName: "endBlock" as const },
+          { address: log.auction, abi: AUCTION_ABI, functionName: "clearingPrice" as const },
+          { address: log.auction, abi: AUCTION_ABI, functionName: "floorPrice" as const },
+          { address: log.auction, abi: AUCTION_ABI, functionName: "nextBidId" as const },
+          { address: log.auction, abi: AUCTION_ABI, functionName: "currencyRaised" as const },
+          { address: log.auction, abi: AUCTION_ABI, functionName: "totalSupply" as const },
+        ])
+        const results = await publicClient.multicall({ contracts })
 
-          return {
+        let idx = 0
+        for (const log of batch) {
+          const startBlock = (results[idx].result as bigint) ?? BigInt(0)
+          const endBlock = (results[idx + 1].result as bigint) ?? BigInt(0)
+          const clearingPriceRaw = (results[idx + 2].result as bigint) ?? BigInt(0)
+          const floorPriceRaw = (results[idx + 3].result as bigint) ?? BigInt(0)
+          raw.push({
             address: log.auction,
             token: log.token,
             startBlock,
@@ -114,13 +131,14 @@ export function AuctionList({ filter }: { filter?: AuctionStatus }) {
             clearingPriceRaw,
             floorPrice: q96ToEth(floorPriceRaw),
             floorPriceRaw,
-            bidCount: Number((results[4].result as bigint) ?? BigInt(0)),
-            currencyRaised: formatEther((results[5].result as bigint) ?? BigInt(0)),
-            totalSupply: formatEther((results[6].result as bigint) ?? BigInt(0)),
+            bidCount: Number((results[idx + 4].result as bigint) ?? BigInt(0)),
+            currencyRaised: formatEther((results[idx + 5].result as bigint) ?? BigInt(0)),
+            totalSupply: formatEther((results[idx + 6].result as bigint) ?? BigInt(0)),
             status: deriveStatus(startBlock, endBlock, latestBlock),
-          }
-        })
-      )
+          })
+          idx += READS_PER_AUCTION
+        }
+      }
 
       const all = raw.map((a, i) => ({ ...a, auctionNumber: i + 1 })) as OnchainAuction[]
       setAuctions(all)
